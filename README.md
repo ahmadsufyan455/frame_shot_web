@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FrameShot Web
+
+> **Your shot. Your gear. Your story.**
+
+FrameShot is a free, browser-based tool that automatically reads EXIF metadata from any photo and renders it as a beautiful, shareable frame — complete with camera body, lens, ISO, shutter speed, aperture, focal length, and date.
+
+**Zero sign-up. Zero upload. Everything processed in your browser.**
+
+---
+
+## Features (v1)
+
+- 📸 Drag-and-drop or click-to-browse photo upload
+- 🔍 Client-side EXIF extraction via `exifr` (JPEG, PNG, HEIC, DNG, ARW, RAF, NEF, CR3)
+- 🎨 6 frame styles: Classic, Darkroom, Film Border, Minimal Line, Fujifilm Sim, Architect
+- ⚡ Real-time Canvas preview (< 100ms re-render)
+- ✏️ Inline EXIF field editing
+- 💾 JPEG & PNG download at full original resolution
+- 🔒 Privacy-first — photo never leaves your browser
+
+---
+
+## Tech Stack
+
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 15 (App Router) |
+| Styling | Tailwind CSS |
+| EXIF Extraction | `exifr` |
+| Frame Rendering | Browser Canvas API |
+| HEIC Support | `heic2any` (polyfill for Chrome/Firefox) |
+| Hosting | Vercel (free tier) |
+
+---
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── page.tsx              # Landing page — upload zone
+│   ├── frame/
+│   │   └── page.tsx          # Frame editor — preview + controls + download
+│   └── layout.tsx            # Root layout, metadata, analytics
+├── components/
+│   ├── UploadZone.tsx        # Drag-and-drop + click-to-browse
+│   ├── FrameCanvas.tsx       # Canvas preview component
+│   ├── StylePicker.tsx       # Horizontal style carousel
+│   ├── ExifPanel.tsx         # EXIF fields display + inline editing
+│   └── DownloadButton.tsx    # Export trigger + format toggle
+├── lib/
+│   ├── exif.ts               # exifr wrapper + field normalisation
+│   ├── renderer.ts           # Canvas drawing orchestrator
+│   └── styles/
+│       ├── classic.ts        # Classic frame painter
+│       ├── darkroom.ts       # Darkroom frame painter
+│       ├── film-border.ts    # Film Border frame painter
+│       ├── minimal-line.ts   # Minimal Line frame painter
+│       ├── fujifilm-sim.ts   # Fujifilm Sim frame painter
+│       └── architect.ts      # Architect frame painter
+└── public/
+    ├── logos/                # Camera brand SVGs (30 brands — TODO)
+    └── watermark.svg         # FrameShot watermark asset
+```
+
+---
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Development Milestones
 
-## Learn More
+| Milestone | Deliverable |
+|---|---|
+| W0 — Setup | ✅ Next.js project, architecture scaffolded |
+| W1 — Core | Upload zone, EXIF extraction, Classic frame |
+| W2 — All Styles | All 6 painters, style picker, live preview |
+| W3 — Polish | Inline editing, download, HEIC support |
+| W4 — SEO | Meta tags, Open Graph, sitemap |
+| W5 — Launch | ProductHunt, community posts |
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT — Free to use and modify.
