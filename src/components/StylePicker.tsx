@@ -74,10 +74,9 @@ export default function StylePicker() {
             className={`
               flex-shrink-0 w-24 rounded-xl border p-2 text-center text-xs
               transition-colors duration-150 cursor-pointer
-              ${
-                selectedStyle === style.id
-                  ? "border-indigo-500 bg-indigo-950/40 text-white"
-                  : "border-neutral-700 bg-neutral-900 text-neutral-400 hover:border-neutral-500"
+              ${selectedStyle === style.id
+                ? "border-white bg-white/10 text-white shadow-[0_0_10px_rgba(255,255,255,0.1)]"
+                : "border-neutral-800 bg-neutral-900 text-neutral-500 hover:border-neutral-600"
               }
             `}
           >
