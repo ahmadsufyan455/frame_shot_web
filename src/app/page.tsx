@@ -1,32 +1,28 @@
 import UploadZone from "@/components/UploadZone";
+import { Camera } from "lucide-react";
 
-/**
- * Landing page — F-01: Photo Upload
- *
- * The upload zone is the first thing the user sees.
- * It must be the largest element on the page (per PRD 6.2).
- */
 export default function HomePage() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-neutral-950 px-4">
-      {/* Header */}
-      <header className="mb-10 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-white">
-          Frame<span className="text-indigo-400">Shot</span>
-        </h1>
-        <p className="mt-2 text-neutral-400 text-sm">
-          Your shot. Your gear. Your story.
-        </p>
-      </header>
+    <main className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a] px-6">
+      <div className="flex flex-col gap-16 items-center justify-center w-full max-w-[1123px]">
+        
+        <div className="flex flex-col items-center justify-center relative">
+          <div className="bg-white drop-shadow-[0px_0px_20px_rgba(255,255,255,0.1)] flex items-center justify-center rounded-[24px] size-[80px] mb-6">
+            <Camera className="size-[36px] text-black" strokeWidth={1.5} />
+          </div>
+          <h1 className="font-bold text-[30px] leading-[36px] text-white tracking-[-0.35px] whitespace-nowrap mb-2">
+            FrameShot
+          </h1>
+          <p className="font-normal text-[#a1a1a1] text-[14px] leading-[20px] tracking-[-0.15px] whitespace-nowrap">
+            Your shot. Your gear. Your story.
+          </p>
+        </div>
 
-      {/* Upload Zone — core entry point */}
-      <UploadZone />
+        <div className="w-full flex justify-center">
+          <UploadZone />
+        </div>
 
-      {/* Footer */}
-      <footer className="mt-12 text-neutral-600 text-xs">
-        © {new Date().getFullYear()} FrameShot — Free & Open. No sign-up
-        required.
-      </footer>
+      </div>
     </main>
   );
 }

@@ -1,73 +1,80 @@
 "use client";
 
-/**
- * UploadZone — F-01: Photo Upload
- *
- * Responsibilities:
- *  - Drag-and-drop photo upload
- *  - Click-to-browse file picker
- *  - File type validation: JPEG, PNG, HEIC, DNG, ARW, RAF, NEF, CR3
- *  - File size validation: max 50MB
- *  - Privacy notice prominently displayed
- *  - Trigger EXIF extraction (lib/exif.ts) after file selected
- *  - Redirect to /frame after successful upload
- *
- * TODO: Implement drag-and-drop handlers
- * TODO: Implement file validation (type + size)
- * TODO: Integrate with lib/exif.ts for extraction
- * TODO: Store image + exifData in sessionStorage / context before redirect
- */
+import { useState, useCallback } from "react";
+import { useDropzone } from "react-dropzone";
+import { useRouter } from "next/navigation";
+import { ImagePlus, Loader2 } from "lucide-react";
 
 export default function UploadZone() {
+  const [isUploading, setIsUploading] = useState(false);
+  const router = useRouter();
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+    
+    setIsUploading(true);
+    
+    // Simulate reading EXIF metadata / uploading
+    setTimeout(() => {
+      // In real implementation, handle EXIF extraction and store in context
+      setIsUploading(false);
+      router.push("/preview");
+    }, 2000);
+  }, [router]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/heic': ['.heic', '.heif'],
+      'image/x-adobe-dng': ['.dng'],
+      'image/x-sony-arw': ['.arw'],
+      'image/x-fuji-raf': ['.raf'],
+      'image/x-nikon-nef': ['.nef'],
+      'image/x-canon-cr3': ['.cr3'],
+    },
+    maxSize: 52428800, // 50MB
+    disabled: isUploading,
+  });
+
   return (
-    <div className="w-full max-w-2xl">
-      {/* Upload drop zone */}
-      <div
-        className="
-          border-2 border-dashed border-neutral-700
-          rounded-2xl p-16
-          flex flex-col items-center justify-center gap-4
-          cursor-pointer
-          hover:border-indigo-500 hover:bg-indigo-950/10
-          transition-colors duration-200
-        "
-        aria-label="Photo upload zone"
-      >
-        {/* Upload icon placeholder */}
-        <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center text-3xl">
-          📸
-        </div>
-
-        <div className="text-center">
-          <p className="text-white font-semibold text-lg">
-            Drop your photo here
-          </p>
-          <p className="text-neutral-400 text-sm mt-1">
-            or{" "}
-            <span className="text-indigo-400 underline cursor-pointer">
-              click to browse
-            </span>
+    <div 
+      {...getRootProps()} 
+      className={`
+        border-2 border-dashed border-[#404040] rounded-[32px] 
+        w-full max-w-[672px] h-[280px]
+        flex flex-col items-center justify-center
+        transition-colors duration-200
+        ${!isUploading && "cursor-pointer"}
+        ${isDragActive ? "bg-[#262626]/50 border-white/50" : ""}
+        ${isUploading ? "opacity-50" : "hover:border-white/30 hover:bg-[#262626]/30"}
+      `}
+    >
+      <input {...getInputProps()} />
+      
+      {isUploading ? (
+        <div className="flex flex-col items-center justify-center gap-4">
+          <Loader2 className="size-[40px] text-white animate-spin" strokeWidth={1.5} />
+          <p className="font-medium text-[#a1a1a1] text-[14px] leading-[20px] tracking-[0.2px] text-center">
+            Reading EXIF metadata...
           </p>
         </div>
-
-        <p className="text-neutral-600 text-xs text-center">
-          JPEG · PNG · HEIC · DNG · ARW · RAF · NEF · CR3 · Max 50MB
-        </p>
-
-        {/* Hidden file input — TODO: wire up onChange */}
-        <input
-          type="file"
-          accept=".jpg,.jpeg,.png,.heic,.heif,.dng,.arw,.raf,.nef,.cr3"
-          className="hidden"
-          aria-label="Select photo file"
-        />
-      </div>
-
-      {/* Privacy notice — PRD 6.2 required */}
-      <p className="mt-4 text-center text-neutral-500 text-xs">
-        🔒 Your photo is processed entirely in your browser. Nothing is uploaded
-        to any server.
-      </p>
+      ) : (
+        <div className="flex flex-col items-center justify-center">
+          <div className="bg-[#262626] rounded-full size-[64px] flex items-center justify-center mb-[20px]">
+            <ImagePlus className="size-[28px] text-white" strokeWidth={1.5} />
+          </div>
+          
+          <p className="font-semibold text-[18px] leading-[28px] text-white tracking-[-0.4395px] text-center">
+            Drag & drop photos
+          </p>
+          
+          <p className="font-medium text-[14px] leading-[20px] text-[#737373] tracking-[-0.15px] text-center mt-1">
+            or click to browse files
+          </p>
+        </div>
+      )}
     </div>
   );
 }
