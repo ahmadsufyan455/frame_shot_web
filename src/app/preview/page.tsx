@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Download, SlidersHorizontal, Settings2, Image as ImageIcon, MapPin } from "lucide-react";
 import StylePicker, { type FrameStyle } from "@/components/StylePicker";
+import Filmstrip from "@/components/Filmstrip";
 import { renderFrame } from "@/lib/renderer";
 import { usePhotoStore } from "@/lib/photo-store";
+import type { ExifData } from "@/lib/exif";
 
 function ExifInput({ label, field, value, onChange, placeholder }: {
   label: string;
@@ -47,7 +49,9 @@ const ASPECT_RATIOS = [
 export default function PreviewPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const router = useRouter();
-  const { objectUrl, exifData } = usePhotoStore();
+  const { photos, activeIndex } = usePhotoStore();
+  const activePhoto = photos[activeIndex];
+
   const [borderWeight, setBorderWeight] = useState(1);
   const [exportQuality, setExportQuality] = useState(92);
   const [readGpsLocation, setReadGpsLocation] = useState(false);
@@ -57,16 +61,17 @@ export default function PreviewPage() {
   const [activeRatio, setActiveRatio] = useState('Original');
   const [selectedStyle, setSelectedStyle] = useState<FrameStyle>('classic');
   const [canvasReady, setCanvasReady] = useState(false);
-  const [editedExif, setEditedExif] = useState(exifData);
+  const [perPhotoExif, setPerPhotoExif] = useState<Record<number, ExifData>>({});
   const loadedImgRef = useRef<HTMLImageElement | null>(null);
-  const exifInitialized = useRef(false);
+  const loadedImgUrl = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (!exifInitialized.current && Object.keys(exifData).some(k => exifData[k as keyof typeof exifData])) {
-      setEditedExif(exifData);
-      exifInitialized.current = true;
-    }
-  }, [exifData]);
+  const editedExif = perPhotoExif[activeIndex] ?? activePhoto?.exifData ?? {};
+  const setEditedExif = useCallback((updater: ExifData | ((prev: ExifData) => ExifData)) => {
+    setPerPhotoExif(prev => ({
+      ...prev,
+      [activeIndex]: typeof updater === "function" ? updater(prev[activeIndex] ?? activePhoto?.exifData ?? {}) : updater,
+    }));
+  }, [activeIndex, activePhoto]);
 
   const isCustomColor = !BACKGROUND_PRESETS.some(p => p.color === backgroundColor);
 
@@ -75,8 +80,10 @@ export default function PreviewPage() {
     setShowLogo(true);
     setBorderWeight(1);
     setBackgroundColor("#ffffff");
-    setEditedExif(exifData);
-  }, [exifData]);
+    if (activePhoto) {
+      setPerPhotoExif(prev => ({ ...prev, [activeIndex]: activePhoto.exifData }));
+    }
+  }, [activePhoto, activeIndex]);
 
   const activeAspectRatio = (() => {
     const s = ASPECT_RATIOS.find(r => r.label === activeRatio);
@@ -90,7 +97,7 @@ export default function PreviewPage() {
   }, []);
 
   useEffect(() => {
-    if (!objectUrl) {
+    if (!activePhoto) {
       router.replace("/");
       return;
     }
@@ -114,32 +121,36 @@ export default function PreviewPage() {
       });
     };
 
-    if (loadedImgRef.current) {
+    if (loadedImgRef.current && loadedImgUrl.current === activePhoto.objectUrl) {
       renderWithImage(loadedImgRef.current);
       return;
     }
 
+    loadedImgRef.current = null;
+    loadedImgUrl.current = activePhoto.objectUrl;
     const img = new Image();
-    img.src = objectUrl;
+    img.src = activePhoto.objectUrl;
     img.onload = () => {
       loadedImgRef.current = img;
+      loadedImgUrl.current = activePhoto.objectUrl;
       renderWithImage(img);
     };
-  }, [objectUrl, editedExif, activeRatio, selectedStyle, showMetadata, showLogo, borderWeight, backgroundColor, router]);
+  }, [activePhoto, editedExif, activeRatio, selectedStyle, showMetadata, showLogo, borderWeight, backgroundColor, router]);
 
   return (
     <div className="flex h-screen bg-[#0a0a0a] text-white overflow-hidden font-sans">
       
       {/* Left Column (Canvas + Bottom Bar) */}
       <div className="flex-1 flex flex-col min-w-0 border-r border-[#262626]">
-        {/* Header */}
-        <header className="h-16 flex items-center px-6 border-b border-[#262626] shrink-0 bg-[#0a0a0a] z-10">
+        <header className="h-14 flex items-center justify-between px-6 border-b border-[#262626] shrink-0 bg-[#0a0a0a] z-10">
           <Link href="/" className="flex items-center gap-2 text-sm text-[#a1a1a1] hover:text-white transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Back to Upload
+            <ArrowLeft className="w-4 h-4" /> Back
           </Link>
+          <Filmstrip photos={photos} activeIndex={activeIndex} />
+          <span className="text-xs text-neutral-600 tabular-nums">
+            {photos.length > 1 ? `${activeIndex + 1}/${photos.length}` : ""}
+          </span>
         </header>
-
-        {/* Canvas Area */}
         <div className="flex-1 min-h-0 overflow-hidden flex items-center justify-center p-8 bg-[#121212] relative">
           <canvas 
             ref={canvasRef} 

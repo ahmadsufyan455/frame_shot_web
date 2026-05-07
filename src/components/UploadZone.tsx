@@ -1,26 +1,42 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Loader2 } from "lucide-react";
 import { extractExif } from "@/lib/exif";
-import { setPhoto } from "@/lib/photo-store";
+import { addPhotos, clearPhotos, MAX_PHOTOS, type PhotoEntry } from "@/lib/photo-store";
+import Dialog from "@/components/Dialog";
 
 export default function UploadZone() {
   const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [showLimitDialog, setShowLimitDialog] = useState(false);
   const router = useRouter();
+
+  useEffect(() => { clearPhotos(); }, []);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
 
-    const file = acceptedFiles[0];
+    if (acceptedFiles.length > MAX_PHOTOS) {
+      setShowLimitDialog(true);
+      return;
+    }
+
     setIsUploading(true);
+    setProgress({ done: 0, total: acceptedFiles.length });
 
     try {
-      const exifData = await extractExif(file);
-      const objectUrl = URL.createObjectURL(file);
-      setPhoto(objectUrl, exifData, file.name);
+      const entries: PhotoEntry[] = [];
+      for (let i = 0; i < acceptedFiles.length; i++) {
+        const file = acceptedFiles[i];
+        const exifData = await extractExif(file);
+        const objectUrl = URL.createObjectURL(file);
+        entries.push({ objectUrl, exifData, filename: file.name });
+        setProgress({ done: i + 1, total: acceptedFiles.length });
+      }
+      addPhotos(entries);
       router.push("/preview");
     } catch {
       setIsUploading(false);
@@ -39,11 +55,13 @@ export default function UploadZone() {
       'image/x-nikon-nef': ['.nef'],
       'image/x-canon-cr3': ['.cr3'],
     },
-    maxSize: 52428800, // 50MB
+    maxSize: 52428800,
+    multiple: true,
     disabled: isUploading,
   });
 
   return (
+    <>
     <div 
       {...getRootProps()} 
       className={`
@@ -62,7 +80,7 @@ export default function UploadZone() {
         <div className="flex flex-col items-center justify-center gap-4">
           <Loader2 className="size-[40px] text-white animate-spin" strokeWidth={1.5} />
           <p className="font-medium text-[#a1a1a1] text-[14px] leading-[20px] tracking-[0.2px] text-center">
-            Reading EXIF metadata...
+            Reading EXIF metadata{progress.total > 1 ? ` (${progress.done}/${progress.total})` : "..."}
           </p>
         </div>
       ) : (
@@ -81,5 +99,15 @@ export default function UploadZone() {
         </div>
       )}
     </div>
+
+    <Dialog
+      open={showLimitDialog}
+      onClose={() => setShowLimitDialog(false)}
+      title="Too many photos"
+      description={`You can upload up to ${MAX_PHOTOS} photos at a time. Please select fewer files and try again.`}
+      actionLabel="Got it"
+      variant="warning"
+    />
+    </>
   );
 }
