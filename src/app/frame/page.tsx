@@ -14,7 +14,6 @@
  */
 
 import FrameCanvas from "@/components/FrameCanvas";
-import StylePicker from "@/components/StylePicker";
 import ExifPanel from "@/components/ExifPanel";
 import DownloadButton from "@/components/DownloadButton";
 
@@ -34,7 +33,6 @@ export default function FramePage() {
         {/* Left: Canvas preview */}
         <section className="flex-1 flex flex-col gap-4">
           <FrameCanvas />
-          <StylePicker />
         </section>
 
         {/* Right: EXIF controls + download */}

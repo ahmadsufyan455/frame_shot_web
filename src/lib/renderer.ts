@@ -21,18 +21,23 @@ import type { FrameStyle } from "@/components/StylePicker";
 // Lazy-load style painters to keep initial bundle small
 const PAINTERS: Record<FrameStyle, () => Promise<{ paint: FramePainter }>> = {
   classic: () => import("./styles/classic"),
-  darkroom: () => import("./styles/darkroom"),
-  "film-border": () => import("./styles/film-border"),
-  "minimal-line": () => import("./styles/minimal-line"),
-  "fujifilm-sim": () => import("./styles/fujifilm-sim"),
-  architect: () => import("./styles/architect"),
 };
+
+export interface PaintOptions {
+  /** Target aspect ratio for the image area (w/h). null = use original image ratio. */
+  aspectRatio?: number | null;
+  showMetadata?: boolean;
+  showLogo?: boolean;
+  borderWeight?: number;
+  backgroundColor?: string;
+}
 
 /** The signature every frame painter must implement */
 export type FramePainter = (
   canvas: HTMLCanvasElement,
   image: HTMLImageElement,
-  exifData: ExifData
+  exifData: ExifData,
+  options?: PaintOptions
 ) => void;
 
 /**
@@ -50,10 +55,11 @@ export async function renderFrame(
   canvas: HTMLCanvasElement,
   image: HTMLImageElement,
   exifData: ExifData,
-  style: FrameStyle
+  style: FrameStyle,
+  options?: PaintOptions
 ): Promise<void> {
   const { paint } = await PAINTERS[style]();
-  paint(canvas, image, exifData);
+  paint(canvas, image, exifData, options);
 }
 
 /**

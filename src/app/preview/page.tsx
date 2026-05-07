@@ -1,55 +1,123 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Download, SlidersHorizontal, Settings2, Image as ImageIcon, MapPin } from "lucide-react";
-import StylePicker from "@/components/StylePicker";
-import { paint as classicPaint } from "@/lib/styles/classic";
+import StylePicker, { type FrameStyle } from "@/components/StylePicker";
+import { renderFrame } from "@/lib/renderer";
+import { usePhotoStore } from "@/lib/photo-store";
+
+function ExifInput({ label, field, value, onChange, placeholder }: {
+  label: string;
+  field: string;
+  value?: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="text-xs font-medium text-neutral-500">{label}</label>
+      <input
+        type="text"
+        placeholder={placeholder}
+        value={value || ""}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-[#121212] border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neutral-500 transition-colors"
+      />
+    </div>
+  );
+}
+
+const BACKGROUND_PRESETS = [
+  { color: "#ffffff", label: "White" },
+  { color: "#000000", label: "Black" },
+  { color: "#f5f0eb", label: "Cream" },
+] as const;
+
+const ASPECT_RATIOS = [
+  { label: 'Original', w: 0, h: 0 },
+  { label: '1:1', w: 1, h: 1 },
+  { label: '4:5', w: 4, h: 5 },
+  { label: '3:4', w: 3, h: 4 },
+  { label: '16:9', w: 16, h: 9 },
+  { label: '9:16', w: 9, h: 16 },
+] as const;
 
 export default function PreviewPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const router = useRouter();
+  const { objectUrl, exifData } = usePhotoStore();
   const [borderWeight, setBorderWeight] = useState(1);
   const [exportQuality, setExportQuality] = useState(92);
   const [readGpsLocation, setReadGpsLocation] = useState(false);
+  const [showMetadata, setShowMetadata] = useState(true);
+  const [showLogo, setShowLogo] = useState(true);
+  const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [activeRatio, setActiveRatio] = useState('Original');
+  const [selectedStyle, setSelectedStyle] = useState<FrameStyle>('classic');
+  const [canvasReady, setCanvasReady] = useState(false);
+  const [editedExif, setEditedExif] = useState(exifData);
+  const loadedImgRef = useRef<HTMLImageElement | null>(null);
+  const exifInitialized = useRef(false);
 
-  const aspectRatios = [
-    { label: 'Original', w: 3, h: 4 },
-    { label: '1:1', w: 1, h: 1 },
-    { label: '4:5', w: 4, h: 5 },
-    { label: '3:4', w: 3, h: 4 },
-    { label: '16:9', w: 16, h: 9 },
-    { label: '9:16', w: 9, h: 16 },
-  ];
-
-  // Dummy render for classic frame preview
   useEffect(() => {
+    if (!exifInitialized.current && Object.keys(exifData).some(k => exifData[k as keyof typeof exifData])) {
+      setEditedExif(exifData);
+      exifInitialized.current = true;
+    }
+  }, [exifData]);
+
+  const isCustomColor = !BACKGROUND_PRESETS.some(p => p.color === backgroundColor);
+
+  const activeAspectRatio = (() => {
+    const s = ASPECT_RATIOS.find(r => r.label === activeRatio);
+    return s && s.w > 0 ? s.w / s.h : null;
+  })();
+
+  const FADE_DURATION_MS = 200;
+  const handleRatioChange = useCallback((label: string) => {
+    setCanvasReady(false);
+    setTimeout(() => setActiveRatio(label), FADE_DURATION_MS);
+  }, []);
+
+  useEffect(() => {
+    if (!objectUrl) {
+      router.replace("/");
+      return;
+    }
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Set canvas dimensions based on a 4:5 aspect ratio
     canvas.width = 1080;
-    canvas.height = 1350;
 
-    // Load a placeholder image to render
-    const img = new Image();
-    img.src = "https://images.unsplash.com/photo-1682687982501-1e5898cb4fe9?q=80&w=1080&auto=format&fit=crop";
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      // Dummy EXIF data
-      const dummyExif = {
-        make: "Sony",
-        model: "ILCE-7RM4",
-        lensModel: "FE 35mm F1.4 GM",
-        focalLength: "35mm",
-        aperture: "1.4",
-        shutterSpeed: "1/500",
-        iso: "100"
-      };
-
-      classicPaint(canvas, img, dummyExif);
+    const paintOptions = {
+      aspectRatio: activeAspectRatio,
+      showMetadata,
+      showLogo,
+      borderWeight,
+      backgroundColor,
     };
-  }, []);
+
+    const renderWithImage = (img: HTMLImageElement) => {
+      renderFrame(canvas, img, editedExif, selectedStyle, paintOptions).then(() => {
+        setCanvasReady(true);
+      });
+    };
+
+    if (loadedImgRef.current) {
+      renderWithImage(loadedImgRef.current);
+      return;
+    }
+
+    const img = new Image();
+    img.src = objectUrl;
+    img.onload = () => {
+      loadedImgRef.current = img;
+      renderWithImage(img);
+    };
+  }, [objectUrl, editedExif, activeRatio, selectedStyle, showMetadata, showLogo, borderWeight, backgroundColor, router]);
 
   return (
     <div className="flex h-screen bg-[#0a0a0a] text-white overflow-hidden font-sans">
@@ -64,52 +132,56 @@ export default function PreviewPage() {
         </header>
 
         {/* Canvas Area */}
-        <div className="flex-1 overflow-auto flex items-center justify-center p-8 bg-[#121212] relative">
+        <div className="flex-1 min-h-0 overflow-hidden flex items-center justify-center p-8 bg-[#121212] relative">
           <canvas 
             ref={canvasRef} 
             id="frame-canvas" 
-            className="max-w-full max-h-full object-contain shadow-2xl rounded" 
-            style={{ maxHeight: "calc(100vh - 16rem)" }}
+            className={`max-w-full max-h-full object-contain shadow-2xl rounded transition-all duration-200 ease-out ${canvasReady ? "blur-0 scale-100" : "blur-md scale-[0.98]"}`}
           />
         </div>
 
-        {/* Bottom Bar: Aspect Ratios & Style Picker */}
-        <div className="h-auto border-t border-[#262626] bg-[#0a0a0a] px-6 py-4 flex flex-col gap-3 shrink-0 z-10">
-          {/* Aspect Ratios */}
-          <div className="flex flex-col gap-1">
-            <div className="flex gap-8 overflow-x-auto pb-2 scrollbar-hide px-2 items-center justify-center">
-                {aspectRatios.map(ratio => (
-                  <button 
-                    key={ratio.label} 
-                    onClick={() => setActiveRatio(ratio.label)}
-                    className="flex flex-col items-center gap-2 group transition-all duration-300"
-                  >
-                    {/* Ratio Shape Visual - Hollow with Glow */}
-                    <div className="h-10 flex items-center justify-center">
-                      <div 
-                        className={`rounded-[4px] transition-all duration-300 ${
-                          activeRatio === ratio.label 
-                          ? "border-[2px] border-white shadow-[0_0_10px_rgba(255,255,255,0.3)]" 
-                          : "border-[1.5px] border-neutral-700 group-hover:border-neutral-500"
-                        }`}
-                        style={{
-                          width: `${Math.max(12, Math.min(36, (ratio.w / ratio.h) * 28))}px`,
-                          height: `${Math.max(12, Math.min(36, (ratio.h / ratio.w) * 28))}px`
-                        }}
-                      />
-                    </div>
-                    <span className={`text-[10px] font-bold transition-colors duration-300 ${
-                      activeRatio === ratio.label ? "text-white" : "text-neutral-500 group-hover:text-neutral-400"
-                    }`}>
-                      {ratio.label}
-                    </span>
-                  </button>
-                ))}
-            </div>
+        {/* Bottom Bar: Aspect Ratios (centered) + Frame Styles (scrollable) */}
+        <div className="border-t border-[#262626] bg-[#0a0a0a] px-6 py-2 flex flex-col gap-2 shrink-0 z-10">
+          <div className="flex gap-5 items-center justify-center">
+            {ASPECT_RATIOS.map(ratio => {
+              const isOriginal = ratio.w === 0;
+              const shapeW = isOriginal ? 16 : Math.max(10, Math.min(24, (ratio.w / ratio.h) * 18));
+              const shapeH = isOriginal ? 20 : Math.max(10, Math.min(24, (ratio.h / ratio.w) * 18));
+              const isActive = activeRatio === ratio.label;
+
+              return (
+                <button 
+                  key={ratio.label} 
+                  onClick={() => handleRatioChange(ratio.label)}
+                  className="flex flex-col items-center gap-1 group transition-all duration-300"
+                >
+                  <div className="h-6 flex items-center justify-center">
+                    <div 
+                      className={`rounded-[3px] transition-all duration-300 ${
+                        isActive 
+                        ? "border-[1.5px] border-white shadow-[0_0_8px_rgba(255,255,255,0.3)]" 
+                        : "border-[1px] border-neutral-700 group-hover:border-neutral-500"
+                      }`}
+                      style={{ width: `${shapeW}px`, height: `${shapeH}px` }}
+                    />
+                  </div>
+                  <span className={`text-[9px] font-semibold transition-colors duration-300 ${
+                    isActive ? "text-white" : "text-neutral-600 group-hover:text-neutral-400"
+                  }`}>
+                    {ratio.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Style Picker */}
-          <StylePicker />
+          <StylePicker
+            selectedStyle={selectedStyle}
+            onStyleChange={setSelectedStyle}
+            image={loadedImgRef.current}
+            exifData={editedExif}
+            paintOptions={{ aspectRatio: activeAspectRatio, showMetadata, showLogo, borderWeight, backgroundColor }}
+          />
         </div>
       </div>
 
@@ -129,12 +201,11 @@ export default function PreviewPage() {
               <ImageIcon className="w-4 h-4 text-neutral-400" /> Visual
             </h3>
             
-            {/* Toggles */}
             <div className="flex flex-col gap-4">
               <label className="flex items-center justify-between cursor-pointer group">
                 <span className="text-sm text-neutral-400 group-hover:text-neutral-300 transition-colors">Show Metadata (EXIF)</span>
                 <div className="relative inline-flex items-center">
-                  <input type="checkbox" className="sr-only peer" defaultChecked />
+                  <input type="checkbox" className="sr-only peer" checked={showMetadata} onChange={() => setShowMetadata(!showMetadata)} />
                   <div className="w-9 h-5 bg-[#262626] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-white peer-checked:after:bg-black"></div>
                 </div>
               </label>
@@ -142,7 +213,7 @@ export default function PreviewPage() {
               <label className="flex items-center justify-between cursor-pointer group">
                 <span className="text-sm text-neutral-400 group-hover:text-neutral-300 transition-colors">Show Camera Logo</span>
                 <div className="relative inline-flex items-center">
-                  <input type="checkbox" className="sr-only peer" defaultChecked />
+                  <input type="checkbox" className="sr-only peer" checked={showLogo} onChange={() => setShowLogo(!showLogo)} />
                   <div className="w-9 h-5 bg-[#262626] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-white peer-checked:after:bg-black"></div>
                 </div>
               </label>
@@ -171,60 +242,58 @@ export default function PreviewPage() {
               </div>
             </div>
 
-            {/* Background Color */}
             <div className="flex flex-col gap-3">
               <label className="text-sm text-neutral-400">Background</label>
-              <div className="flex gap-3">
-                {['#ffffff', '#000000', '#f5f5f5', '#1a1a1a'].map(color => (
-                  <button 
-                    key={color} 
-                    className="w-8 h-8 rounded-full border-2 border-neutral-800 shadow-sm transition-transform hover:scale-110" 
-                    style={{ backgroundColor: color }} 
+              <div className="flex gap-3 items-center">
+                {BACKGROUND_PRESETS.map(({ color, label }) => {
+                  const isActive = backgroundColor === color;
+                  return (
+                    <button 
+                      key={color}
+                      title={label}
+                      onClick={() => setBackgroundColor(color)}
+                      className={`w-8 h-8 rounded-full border-2 shadow-sm transition-all hover:scale-110 ${
+                        isActive ? "border-white scale-110" : "border-neutral-800"
+                      }`}
+                      style={{ backgroundColor: color }} 
+                    />
+                  );
+                })}
+                <div className="relative">
+                  <input
+                    type="color"
+                    value={backgroundColor}
+                    onChange={(e) => setBackgroundColor(e.target.value)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
-                ))}
+                  <div
+                    className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 flex items-center justify-center ${
+                      isCustomColor ? "border-white scale-110" : "border-neutral-800"
+                    }`}
+                    style={{ background: isCustomColor ? backgroundColor : "conic-gradient(from 0deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)" }}
+                  >
+                    {!isCustomColor && <div className="w-3 h-3 rounded-full bg-[#0a0a0a]" />}
+                  </div>
+                </div>
               </div>
             </div>
           </section>
           
           <hr className="border-[#262626]" />
 
-          {/* Metadata Overrides */}
           <section className="flex flex-col gap-5">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <SlidersHorizontal className="w-4 h-4 text-neutral-400" /> Metadata Overrides
             </h3>
             
             <div className="flex flex-col gap-4">
-              {/* Camera */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-medium text-neutral-500">Camera</label>
-                <input type="text" placeholder="Sony A7 IV" defaultValue="Sony ILCE-7RM4" className="w-full bg-[#121212] border border-neutral-800 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neutral-500 transition-colors" />
-              </div>
-
-              {/* Lens */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-medium text-neutral-500">Lens</label>
-                <input type="text" placeholder="Sony FE 35mm f/1.4 GM" defaultValue="FE 35mm F1.4 GM" className="w-full bg-[#121212] border border-neutral-800 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neutral-500 transition-colors" />
-              </div>
-
-              {/* Settings Grid */}
-              <div className="grid grid-cols-2 gap-4 mt-2">
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-medium text-neutral-500">Aperture</label>
-                  <input type="text" placeholder="f/1.4" defaultValue="f/1.4" className="w-full bg-[#121212] border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neutral-500 transition-colors" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-medium text-neutral-500">Shutter</label>
-                  <input type="text" placeholder="1/500s" defaultValue="1/500s" className="w-full bg-[#121212] border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neutral-500 transition-colors" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-medium text-neutral-500">ISO</label>
-                  <input type="text" placeholder="100" defaultValue="ISO 100" className="w-full bg-[#121212] border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neutral-500 transition-colors" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-medium text-neutral-500">Focal Length</label>
-                  <input type="text" placeholder="35mm" defaultValue="35mm" className="w-full bg-[#121212] border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neutral-500 transition-colors" />
-                </div>
+              <ExifInput label="Camera" field="model" value={editedExif.model} onChange={(v) => setEditedExif(prev => ({ ...prev, model: v }))} placeholder="e.g. ILCE-7CM2" />
+              <ExifInput label="Lens" field="lensModel" value={editedExif.lensModel} onChange={(v) => setEditedExif(prev => ({ ...prev, lensModel: v }))} placeholder="e.g. FE 35mm F1.8" />
+              <div className="grid grid-cols-2 gap-4 mt-1">
+                <ExifInput label="Aperture" field="aperture" value={editedExif.aperture} onChange={(v) => setEditedExif(prev => ({ ...prev, aperture: v }))} placeholder="e.g. f/1.8" />
+                <ExifInput label="Shutter" field="shutterSpeed" value={editedExif.shutterSpeed} onChange={(v) => setEditedExif(prev => ({ ...prev, shutterSpeed: v }))} placeholder="e.g. 1/500s" />
+                <ExifInput label="ISO" field="iso" value={editedExif.iso} onChange={(v) => setEditedExif(prev => ({ ...prev, iso: v }))} placeholder="e.g. ISO 800" />
+                <ExifInput label="Focal Length" field="focalLength" value={editedExif.focalLength} onChange={(v) => setEditedExif(prev => ({ ...prev, focalLength: v }))} placeholder="e.g. 35mm" />
               </div>
             </div>
           </section>

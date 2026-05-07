@@ -4,22 +4,27 @@ import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Loader2 } from "lucide-react";
+import { extractExif } from "@/lib/exif";
+import { setPhoto } from "@/lib/photo-store";
 
 export default function UploadZone() {
   const [isUploading, setIsUploading] = useState(false);
   const router = useRouter();
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
-    
+
+    const file = acceptedFiles[0];
     setIsUploading(true);
-    
-    // Simulate reading EXIF metadata / uploading
-    setTimeout(() => {
-      // In real implementation, handle EXIF extraction and store in context
-      setIsUploading(false);
+
+    try {
+      const exifData = await extractExif(file);
+      const objectUrl = URL.createObjectURL(file);
+      setPhoto(objectUrl, exifData, file.name);
       router.push("/preview");
-    }, 2000);
+    } catch {
+      setIsUploading(false);
+    }
   }, [router]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

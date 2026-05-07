@@ -1,110 +1,251 @@
 /**
  * Classic Frame Painter
  *
- * Style: White bottom bar, metadata on the right, clean and minimal.
+ * Style: White background, photo with rounded corners, compact bottom bar
+ * with camera icon on left and metadata split left/right.
  *
- * Layout:
- *  ┌─────────────────────────────┐
- *  │                             │
- *  │          Photo              │
- *  │                             │
- *  ├─────────────────────────────┤
- *  │  [Camera logo]  f/1.8 · 1/500s · ISO 800  │  ← white bar
- *  │                Sony ILCE-7CM2 · 35mm       │
- *  └─────────────────────────────┘
+ * Layout (based on Figma design):
+ *  ┌──────────────────────────────────┐
+ *  │  padding                         │
+ *  │  ┌────────────────────────────┐  │
+ *  │  │                            │  │
+ *  │  │     Photo (rounded 6px)    │  │
+ *  │  │                            │  │
+ *  │  └────────────────────────────┘  │
+ *  │                                  │
+ *  │  [◉] Camera Model    35mm f/1.8  │
+ *  │      Lens Model     1/500s ISO…  │
+ *  └──────────────────────────────────┘
  *
- * TODO: Implement full painter:
- *   1. Draw photo onto canvas (respecting aspect ratio)
- *   2. Draw white bottom bar (height: ~10% of canvas height)
- *   3. Render camera brand logo (from /public/logos/ SVG)
- *   4. Render EXIF text fields aligned right
+ * Proportions (relative to canvas width):
+ *  - Padding: ~3.6% of width (12/329 from Figma)
+ *  - Bottom bar height: ~17% of width (56/329)
+ *  - Image corner radius: ~1.8% of width (6/329)
+ *  - Icon circle: ~9.7% of width (32/329)
  */
 
 import type { FramePainter } from "../renderer";
 
-export const paint: FramePainter = (canvas, image, exifData) => {
+export const paint: FramePainter = (canvas, image, exifData, options) => {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
   const width = canvas.width;
-  const height = canvas.height;
+  const showMetadata = options?.showMetadata ?? true;
+  const showLogo = options?.showLogo ?? true;
+  const weight = options?.borderWeight ?? 1;
+  const bgColor = options?.backgroundColor ?? "#ffffff";
 
-  // Fill background
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, width, height);
+  const basePadding = Math.round(width * 0.0365);
+  const padding = Math.round(basePadding * weight);
+  const bottomBarHeight = showMetadata ? Math.round(width * 0.17) : Math.round(padding * 0.5);
+  const imageRadius = Math.round(width * 0.018);
+  const iconSize = Math.round(width * 0.097);
+  const gapIconText = Math.round(width * 0.0365);
 
-  // Calculate padding based on width to keep it proportional
-  const paddingX = Math.floor(width * 0.08); 
-  const paddingYTop = Math.floor(width * 0.08);
-  const paddingYBottom = Math.floor(width * 0.20); 
+  const imgAreaW = width - padding * 2;
+  const imgAspect = options?.aspectRatio ?? image.naturalWidth / image.naturalHeight;
+  const imgAreaH = Math.round(imgAreaW / imgAspect);
 
-  // Calculate inner image dimensions
-  const imgAreaW = width - (paddingX * 2);
-  const imgAreaH = height - (paddingYTop + paddingYBottom);
+  const barGap = Math.round(padding * 0.3);
+  const totalHeight = padding + imgAreaH + barGap + bottomBarHeight + Math.round(padding * 0.3);
 
-  // Maintain image aspect ratio within the allowed area
-  const imgAspect = image.width / image.height;
-  const areaAspect = imgAreaW / imgAreaH;
+  canvas.width = width;
+  canvas.height = totalHeight;
 
-  let drawW = imgAreaW;
-  let drawH = imgAreaH;
-  
-  if (imgAspect > areaAspect) {
-    // Image is wider than area
-    drawH = imgAreaW / imgAspect;
-  } else {
-    // Image is taller than area
-    drawW = imgAreaH * imgAspect;
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, width, totalHeight);
+
+  // --- Draw image with rounded corners ---
+  const imgX = padding;
+  const imgY = padding;
+
+  // Clip to rounded rect for the image
+  ctx.save();
+  drawRoundedRect(ctx, imgX, imgY, imgAreaW, imgAreaH, imageRadius);
+  ctx.clip();
+
+  // Draw image filling the area (cover)
+  drawImageCover(ctx, image, imgX, imgY, imgAreaW, imgAreaH);
+
+  ctx.restore();
+
+  if (!showMetadata) return;
+
+  const barY = imgY + imgAreaH + barGap;
+  const barContentX = padding + Math.round(basePadding * 0.12);
+  const barContentW = imgAreaW - Math.round(basePadding * 0.24);
+  const barCenterY = barY + bottomBarHeight / 2;
+
+  const textLeftX = showLogo
+    ? barContentX + iconSize + gapIconText
+    : barContentX;
+
+  const isDark = luminance(bgColor) < 0.5;
+  const primaryColor = isDark ? "#ffffff" : "#000000";
+  const secondaryColor = isDark ? "#a3a3a3" : "#737373";
+  const iconBgColor = isDark ? "#262626" : "#f5f5f5";
+  const iconStrokeColor = isDark ? "#a3a3a3" : "#525252";
+
+  if (showLogo) {
+    drawCameraIcon(ctx, barContentX, barCenterY - iconSize / 2, iconSize, iconBgColor, iconStrokeColor);
   }
 
-  // Center image in the area
-  const drawX = paddingX + (imgAreaW - drawW) / 2;
-  const drawY = paddingYTop + (imgAreaH - drawH) / 2;
-
-  // Add subtle shadow to image
-  ctx.shadowColor = "rgba(0, 0, 0, 0.15)";
-  ctx.shadowBlur = Math.floor(width * 0.03);
-  ctx.shadowOffsetY = Math.floor(width * 0.015);
-  
-  // Draw image
-  ctx.drawImage(image, drawX, drawY, drawW, drawH);
-  
-  // Reset shadow for text
-  ctx.shadowColor = "transparent";
-  ctx.shadowBlur = 0;
-  ctx.shadowOffsetY = 0;
-
-  // Draw Text in the bottom padding area
-  const textY = height - (paddingYBottom * 0.45);
-  const fontSize = Math.floor(width * 0.022);
-  
-  // Left Side: Camera info
-  ctx.fillStyle = "#111111";
+  const modelFontSize = Math.round(width * 0.0365);
+  ctx.fillStyle = primaryColor;
+  ctx.font = `600 ${modelFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
   ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  ctx.font = `700 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
-  
-  const make = (exifData.make || "").toUpperCase();
+  ctx.textBaseline = "alphabetic";
+
   const model = exifData.model || "Unknown Camera";
-  const cameraText = make ? `${make} ${model}` : model;
-  ctx.fillText(cameraText, paddingX, textY);
+  const modelY = barCenterY - Math.round(modelFontSize * 0.15);
+  ctx.fillText(model, textLeftX, modelY);
 
-  // Draw Lens info just below the camera text
-  ctx.fillStyle = "#737373";
-  ctx.font = `500 ${fontSize * 0.75}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
-  const lensText = exifData.lensModel || "Unknown Lens";
-  ctx.fillText(lensText, paddingX, textY + fontSize * 1.6);
+  const lensFontSize = Math.round(width * 0.0304);
+  ctx.fillStyle = secondaryColor;
+  ctx.font = `400 ${lensFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
 
-  // Right Side: Settings
-  ctx.fillStyle = "#111111";
+  const lens = exifData.lensModel || "";
+  const lensY = modelY + Math.round(modelFontSize * 1.3);
+  if (lens) {
+    ctx.fillText(lens, textLeftX, lensY);
+  }
+
+  const textRightX = barContentX + barContentW;
+  const settingsFontSize = Math.round(width * 0.0334);
+  ctx.fillStyle = primaryColor;
+  ctx.font = `500 ${settingsFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
   ctx.textAlign = "right";
-  ctx.font = `600 ${fontSize * 0.9}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
-  
-  const focalLength = exifData.focalLength ? `${exifData.focalLength}` : "";
-  const aperture = exifData.aperture ? `f/${exifData.aperture}` : "";
-  const shutter = exifData.shutterSpeed ? `${exifData.shutterSpeed}s` : "";
-  const iso = exifData.iso ? `ISO ${exifData.iso}` : "";
 
-  const settingsText = [focalLength, aperture, shutter, iso].filter(Boolean).join("   ");
-  ctx.fillText(settingsText, width - paddingX, textY);
+  const focalLength = exifData.focalLength || "";
+  const aperture = exifData.aperture || "";
+  const topRight = [focalLength, aperture].filter(Boolean).join(" ");
+  ctx.fillText(topRight, textRightX, modelY);
+
+  ctx.fillStyle = secondaryColor;
+  ctx.font = `400 ${lensFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+
+  const shutter = exifData.shutterSpeed || "";
+  const iso = exifData.iso || "";
+  const bottomRight = [shutter, iso].filter(Boolean).join(" ");
+  if (bottomRight) {
+    ctx.fillText(bottomRight, textRightX, lensY);
+  }
 };
+
+// --- Helper: Draw rounded rectangle path ---
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// --- Helper: Draw image with "cover" behavior ---
+function drawImageCover(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  dx: number,
+  dy: number,
+  dw: number,
+  dh: number
+) {
+  const imgAspect = image.naturalWidth / image.naturalHeight;
+  const areaAspect = dw / dh;
+
+  let sx = 0,
+    sy = 0,
+    sw = image.naturalWidth,
+    sh = image.naturalHeight;
+
+  if (imgAspect > areaAspect) {
+    // Image is wider — crop sides
+    sw = image.naturalHeight * areaAspect;
+    sx = (image.naturalWidth - sw) / 2;
+  } else {
+    // Image is taller — crop top/bottom
+    sh = image.naturalWidth / areaAspect;
+    sy = (image.naturalHeight - sh) / 2;
+  }
+
+  ctx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
+}
+
+// Relative luminance (0=black, 1=white) for contrast-adaptive text
+function luminance(hex: string): number {
+  const c = hex.replace("#", "");
+  const r = parseInt(c.substring(0, 2), 16) / 255;
+  const g = parseInt(c.substring(2, 4), 16) / 255;
+  const b = parseInt(c.substring(4, 6), 16) / 255;
+  const toLinear = (v: number) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+}
+
+function drawCameraIcon(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  bgFill: string,
+  strokeColor: string
+) {
+  const centerX = x + size / 2;
+  const centerY = y + size / 2;
+
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, size / 2, 0, Math.PI * 2);
+  ctx.fillStyle = bgFill;
+  ctx.fill();
+
+  const iconScale = size * 0.45;
+  const ix = centerX - iconScale / 2;
+  const iy = centerY - iconScale / 2;
+
+  ctx.save();
+  ctx.translate(ix, iy);
+  ctx.scale(iconScale / 24, iconScale / 24);
+
+  ctx.beginPath();
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  // Camera body rectangle with rounded corners
+  // path: M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z
+  ctx.moveTo(23, 19);
+  ctx.quadraticCurveTo(23, 21, 21, 21);
+  ctx.lineTo(3, 21);
+  ctx.quadraticCurveTo(1, 21, 1, 19);
+  ctx.lineTo(1, 8);
+  ctx.quadraticCurveTo(1, 6, 3, 6);
+  ctx.lineTo(7, 6);
+  ctx.lineTo(9, 3);
+  ctx.lineTo(15, 3);
+  ctx.lineTo(17, 6);
+  ctx.lineTo(21, 6);
+  ctx.quadraticCurveTo(23, 6, 23, 8);
+  ctx.closePath();
+  ctx.stroke();
+
+  // Lens circle: circle cx="12" cy="13" r="4"
+  ctx.beginPath();
+  ctx.arc(12, 13, 4, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.restore();
+}
