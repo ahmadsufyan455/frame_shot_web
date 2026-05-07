@@ -70,6 +70,14 @@ export default function PreviewPage() {
 
   const isCustomColor = !BACKGROUND_PRESETS.some(p => p.color === backgroundColor);
 
+  const handleReset = useCallback(() => {
+    setShowMetadata(true);
+    setShowLogo(true);
+    setBorderWeight(1);
+    setBackgroundColor("#ffffff");
+    setEditedExif(exifData);
+  }, [exifData]);
+
   const activeAspectRatio = (() => {
     const s = ASPECT_RATIOS.find(r => r.label === activeRatio);
     return s && s.w > 0 ? s.w / s.h : null;
@@ -191,7 +199,7 @@ export default function PreviewPage() {
           <h2 className="font-semibold text-white flex items-center gap-2">
             <Settings2 className="w-4 h-4 text-neutral-400" /> Customize
           </h2>
-          <button className="text-sm text-neutral-400 hover:text-white transition-colors">Reset</button>
+          <button onClick={handleReset} className="text-sm text-neutral-400 hover:text-white transition-colors">Reset</button>
         </div>
         
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-8 scrollbar-hide">
