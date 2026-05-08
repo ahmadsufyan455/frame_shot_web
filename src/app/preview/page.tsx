@@ -93,9 +93,10 @@ export default function PreviewPage() {
 
   const FADE_DURATION_MS = 200;
   const handleRatioChange = useCallback((label: string) => {
+    if (label === activeRatio) return;
     setCanvasReady(false);
     setTimeout(() => setActiveRatio(label), FADE_DURATION_MS);
-  }, []);
+  }, [activeRatio]);
 
   useEffect(() => {
     if (!activePhoto) {
@@ -161,12 +162,12 @@ export default function PreviewPage() {
         </div>
 
         {/* Bottom Bar: Aspect Ratios (centered) + Frame Styles (scrollable) */}
-        <div className="border-t border-[#262626] bg-[#0a0a0a] px-6 py-2 flex flex-col gap-2 shrink-0 z-10">
+        <div className="border-t border-[#262626] bg-[#0a0a0a] px-6 py-2 flex flex-col gap-3 shrink-0 z-10">
           <div className="flex gap-5 items-center justify-center">
             {ASPECT_RATIOS.map(ratio => {
               const isOriginal = ratio.w === 0;
-              const shapeW = isOriginal ? 16 : Math.max(10, Math.min(24, (ratio.w / ratio.h) * 18));
-              const shapeH = isOriginal ? 20 : Math.max(10, Math.min(24, (ratio.h / ratio.w) * 18));
+              const shapeW = isOriginal ? 20 : Math.max(14, Math.min(32, (ratio.w / ratio.h) * 24));
+              const shapeH = isOriginal ? 26 : Math.max(14, Math.min(32, (ratio.h / ratio.w) * 24));
               const isActive = activeRatio === ratio.label;
 
               return (
@@ -175,7 +176,7 @@ export default function PreviewPage() {
                   onClick={() => handleRatioChange(ratio.label)}
                   className="flex flex-col items-center gap-1 group transition-all duration-300"
                 >
-                  <div className="h-6 flex items-center justify-center">
+                  <div className="h-8 flex items-center justify-center">
                     <div 
                       className={`rounded-[3px] transition-all duration-300 ${
                         isActive 
@@ -200,7 +201,6 @@ export default function PreviewPage() {
             onStyleChange={setSelectedStyle}
             image={loadedImgRef.current}
             exifData={editedExif}
-            paintOptions={{ aspectRatio: activeAspectRatio, showMetadata, showLogo, borderWeight, backgroundColor }}
           />
         </div>
       </div>

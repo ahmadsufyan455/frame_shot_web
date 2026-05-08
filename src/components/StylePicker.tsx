@@ -2,7 +2,6 @@
 
 import { useRef, useEffect } from "react";
 import type { ExifData } from "@/lib/exif";
-import type { PaintOptions } from "@/lib/renderer";
 import { FRAME_STYLES, type FrameStyle } from "@/lib/frame-styles";
 
 export type { FrameStyle } from "@/lib/frame-styles";
@@ -12,19 +11,16 @@ interface StylePickerProps {
   onStyleChange: (style: FrameStyle) => void;
   image: HTMLImageElement | null;
   exifData: ExifData;
-  paintOptions?: PaintOptions;
 }
 
 function StyleThumbnail({
   styleId,
   image,
   exifData,
-  paintOptions,
 }: {
   styleId: FrameStyle;
   image: HTMLImageElement | null;
   exifData: ExifData;
-  paintOptions?: PaintOptions;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -34,11 +30,10 @@ function StyleThumbnail({
 
     canvas.width = 200;
 
-    const thumbnailOptions = { aspectRatio: paintOptions?.aspectRatio };
     import(`@/lib/styles/${styleId}`).then(({ paint }) => {
-      paint(canvas, image, exifData, thumbnailOptions);
+      paint(canvas, image, exifData);
     });
-  }, [styleId, image, exifData, paintOptions?.aspectRatio]);
+  }, [styleId, image, exifData]);
 
   return (
     <canvas
@@ -53,10 +48,9 @@ export default function StylePicker({
   onStyleChange,
   image,
   exifData,
-  paintOptions,
 }: StylePickerProps) {
   return (
-    <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+    <div className="flex gap-2 overflow-x-auto scrollbar-hide justify-center py-1">
       {FRAME_STYLES.map((style) => {
         const isActive = selectedStyle === style.id;
         return (
@@ -66,23 +60,22 @@ export default function StylePicker({
             aria-pressed={isActive}
             onClick={() => onStyleChange(style.id)}
             className={`
-              flex-shrink-0 w-14 rounded-lg border p-1 text-center
-              transition-all duration-200 cursor-pointer
+              flex-shrink-0 w-[64px] rounded-lg border p-1 text-center
+              transition-all duration-300 ease-out cursor-pointer
               ${isActive
-                ? "border-white bg-white/10 text-white shadow-[0_0_8px_rgba(255,255,255,0.1)]"
+                ? "border-white bg-white/10 text-white shadow-[0_0_8px_rgba(255,255,255,0.15)]"
                 : "border-neutral-800 bg-neutral-900 text-neutral-500 hover:border-neutral-600"
               }
             `}
           >
-            <div className="w-full aspect-[3/4] bg-neutral-800 rounded overflow-hidden">
+            <div className={`w-full aspect-[4/5] bg-neutral-800 rounded overflow-hidden transition-opacity duration-300 ${isActive ? "opacity-100" : "opacity-60"}`}>
               <StyleThumbnail
                 styleId={style.id}
                 image={image}
                 exifData={exifData}
-                paintOptions={paintOptions}
               />
             </div>
-            <span className="text-[9px] leading-tight mt-0.5 block">{style.label}</span>
+            <span className={`text-[9px] leading-tight mt-1 block whitespace-nowrap transition-colors duration-300 ${isActive ? "text-white" : "text-neutral-500"}`}>{style.label}</span>
           </button>
         );
       })}
