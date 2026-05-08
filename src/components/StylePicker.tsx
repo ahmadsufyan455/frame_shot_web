@@ -34,10 +34,11 @@ function StyleThumbnail({
 
     canvas.width = 200;
 
+    const thumbnailOptions = { aspectRatio: paintOptions?.aspectRatio };
     import(`@/lib/styles/${styleId}`).then(({ paint }) => {
-      paint(canvas, image, exifData, paintOptions);
+      paint(canvas, image, exifData, thumbnailOptions);
     });
-  }, [styleId, image, exifData, paintOptions]);
+  }, [styleId, image, exifData, paintOptions?.aspectRatio]);
 
   return (
     <canvas
