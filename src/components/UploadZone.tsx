@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { useDropzone } from "react-dropzone";
-import { useRouter } from "next/navigation";
-import { ImagePlus, Loader2 } from "lucide-react";
+import Dialog from "@/components/Dialog";
 import { extractExif } from "@/lib/exif";
 import { addPhotos, clearPhotos, MAX_PHOTOS, type PhotoEntry } from "@/lib/photo-store";
-import Dialog from "@/components/Dialog";
+import { ImagePlus, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { useDropzone } from "react-dropzone";
 
 export default function UploadZone() {
   const [isUploading, setIsUploading] = useState(false);
@@ -62,9 +62,9 @@ export default function UploadZone() {
 
   return (
     <>
-    <div 
-      {...getRootProps()} 
-      className={`
+      <div
+        {...getRootProps()}
+        className={`
         border-2 border-dashed border-[#404040] rounded-[32px] 
         w-full max-w-[672px] h-[280px]
         flex flex-col items-center justify-center
@@ -73,41 +73,41 @@ export default function UploadZone() {
         ${isDragActive ? "bg-[#262626]/50 border-white/50" : ""}
         ${isUploading ? "opacity-50" : "hover:border-white/30 hover:bg-[#262626]/30"}
       `}
-    >
-      <input {...getInputProps()} />
-      
-      {isUploading ? (
-        <div className="flex flex-col items-center justify-center gap-4">
-          <Loader2 className="size-[40px] text-white animate-spin" strokeWidth={1.5} />
-          <p className="font-medium text-[#a1a1a1] text-[14px] leading-[20px] tracking-[0.2px] text-center">
-            Reading EXIF metadata{progress.total > 1 ? ` (${progress.done}/${progress.total})` : "..."}
-          </p>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center">
-          <div className="bg-[#262626] rounded-full size-[64px] flex items-center justify-center mb-[20px]">
-            <ImagePlus className="size-[28px] text-white" strokeWidth={1.5} />
-          </div>
-          
-          <p className="font-semibold text-[18px] leading-[28px] text-white tracking-[-0.4395px] text-center">
-            Drag & drop photos
-          </p>
-          
-          <p className="font-medium text-[14px] leading-[20px] text-[#737373] tracking-[-0.15px] text-center mt-1">
-            or click to browse files
-          </p>
-        </div>
-      )}
-    </div>
+      >
+        <input {...getInputProps()} />
 
-    <Dialog
-      open={showLimitDialog}
-      onClose={() => setShowLimitDialog(false)}
-      title="Too many photos"
-      description={`You can upload up to ${MAX_PHOTOS} photos at a time. Please select fewer files and try again.`}
-      actionLabel="Got it"
-      variant="warning"
-    />
+        {isUploading ? (
+          <div className="flex flex-col items-center justify-center gap-4">
+            <Loader2 className="size-[40px] text-white animate-spin" strokeWidth={1.5} />
+            <p className="font-medium text-[#a1a1a1] text-[14px] leading-[20px] tracking-[0.2px] text-center">
+              Reading EXIF metadata{progress.total > 1 ? ` (${progress.done}/${progress.total})` : "..."}
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center">
+            <div className="bg-[#262626] rounded-full size-[64px] flex items-center justify-center mb-[20px]">
+              <ImagePlus className="size-[28px] text-white" strokeWidth={1.5} />
+            </div>
+
+            <p className="font-semibold text-[18px] leading-[28px] text-white tracking-[-0.4395px] text-center">
+              Drag & drop photos
+            </p>
+
+            <p className="font-medium text-[14px] leading-[20px] text-[#737373] tracking-[-0.15px] text-center mt-1">
+              or click to browse files
+            </p>
+          </div>
+        )}
+      </div>
+
+      <Dialog
+        open={showLimitDialog}
+        onClose={() => setShowLimitDialog(false)}
+        title="Too many photos"
+        description={`You can upload up to ${MAX_PHOTOS} photos at a time. Please select fewer files and try again.`}
+        actionLabel="Got it"
+        variant="warning"
+      />
     </>
   );
 }
