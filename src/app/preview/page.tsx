@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Download, SlidersHorizontal, Settings2, Image as ImageIcon, Loader2 } from "lucide-react";
 import StylePicker from "@/components/StylePicker";
 import Filmstrip from "@/components/Filmstrip";
+import Toast, { type ToastMessage } from "@/components/Toast";
 import { renderFrame, exportFrameToBlob, downloadBlob } from "@/lib/renderer";
 import { usePhotoStore } from "@/lib/photo-store";
 import { FRAME_STYLE_CONFIGS, type FrameStyle } from "@/lib/frame-styles";
@@ -66,6 +67,7 @@ export default function PreviewPage() {
   const [exportQuality, setExportQuality] = useState(92);
   const [exportFormat, setExportFormat] = useState<"jpeg" | "png">("jpeg");
   const [isExporting, setIsExporting] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [showMetadata, setShowMetadata] = useState(true);
   const [showLogo, setShowLogo] = useState(true);
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
@@ -109,8 +111,16 @@ export default function PreviewPage() {
     backgroundColor,
   };
 
+  const addToast = useCallback((type: "success" | "error", text: string) => {
+    setToasts(prev => [...prev, { id: crypto.randomUUID(), type, text }]);
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
   const handleExport = useCallback(async () => {
-    if (isExporting || photos.length === 0) return;
+    if (isExporting || photos.length === 0 || !canvasReady) return;
     setIsExporting(true);
 
     const exportOpts = { format: exportFormat, quality: exportQuality, paintOptions: currentPaintOptions };
@@ -124,26 +134,51 @@ export default function PreviewPage() {
         const blob = await exportFrameToBlob(img, exif, selectedStyle, exportOpts);
         const baseName = photo.filename.replace(/\.[^.]+$/, "");
         downloadBlob(blob, `frameshot-${baseName}.${extension}`);
+        addToast("success", "Image exported successfully");
       } else {
         const JSZip = (await import("jszip")).default;
         const zip = new JSZip();
+        const usedNames = new Map<string, number>();
+        let succeeded = 0;
+        let failed = 0;
 
         for (let i = 0; i < photos.length; i++) {
           const photo = photos[i];
-          const img = await loadImage(photo.objectUrl);
-          const exif = perPhotoExif[i] ?? photo.exifData;
-          const blob = await exportFrameToBlob(img, exif, selectedStyle, exportOpts);
-          const baseName = photo.filename.replace(/\.[^.]+$/, "");
-          zip.file(`frameshot-${baseName}.${extension}`, blob);
+          try {
+            const img = await loadImage(photo.objectUrl);
+            const exif = perPhotoExif[i] ?? photo.exifData;
+            const blob = await exportFrameToBlob(img, exif, selectedStyle, exportOpts);
+
+            let baseName = photo.filename.replace(/\.[^.]+$/, "");
+            const count = usedNames.get(baseName) ?? 0;
+            usedNames.set(baseName, count + 1);
+            if (count > 0) baseName = `${baseName}-${count + 1}`;
+
+            zip.file(`frameshot-${baseName}.${extension}`, blob);
+            succeeded++;
+          } catch {
+            failed++;
+          }
         }
 
-        const zipBlob = await zip.generateAsync({ type: "blob" });
-        downloadBlob(zipBlob, `frameshot-export.zip`);
+        if (succeeded === 0) {
+          addToast("error", "Export failed — could not process any photos");
+        } else {
+          const zipBlob = await zip.generateAsync({ type: "blob" });
+          downloadBlob(zipBlob, `frameshot-export.zip`);
+          if (failed > 0) {
+            addToast("success", `Exported ${succeeded}/${photos.length} photos (${failed} failed)`);
+          } else {
+            addToast("success", `All ${succeeded} photos exported successfully`);
+          }
+        }
       }
+    } catch {
+      addToast("error", "Export failed — please try again");
     } finally {
       setIsExporting(false);
     }
-  }, [isExporting, photos, perPhotoExif, selectedStyle, exportFormat, exportQuality, currentPaintOptions]);
+  }, [isExporting, photos, perPhotoExif, selectedStyle, exportFormat, exportQuality, canvasReady, currentPaintOptions, addToast]);
 
   const FADE_DURATION_MS = 200;
   const handleRatioChange = useCallback((label: string) => {
@@ -458,7 +493,7 @@ export default function PreviewPage() {
         <div className="px-6 py-4 border-t border-[#262626] shrink-0 bg-[#0a0a0a]">
           <button
             onClick={handleExport}
-            disabled={isExporting || photos.length === 0}
+            disabled={isExporting || photos.length === 0 || !canvasReady}
             className="w-full bg-white text-black py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-neutral-200 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
           >
             {isExporting ? (
@@ -470,6 +505,7 @@ export default function PreviewPage() {
         </div>
       </div>
 
+      <Toast messages={toasts} onDismiss={dismissToast} />
     </div>
   );
 }
