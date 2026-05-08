@@ -4,6 +4,7 @@ import type { FrameStyle } from "@/lib/frame-styles";
 const PAINTERS: Record<FrameStyle, () => Promise<{ paint: FramePainter }>> = {
   classic: () => import("./styles/classic"),
   "shot-on": () => import("./styles/shot-on"),
+  "minimal-line": () => import("./styles/minimal-line"),
 };
 
 export interface PaintOptions {

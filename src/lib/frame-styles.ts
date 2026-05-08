@@ -1,6 +1,6 @@
 import type { ExifData } from "./exif";
 
-export type FrameStyle = "classic" | "shot-on";
+export type FrameStyle = "classic" | "shot-on" | "minimal-line";
 
 export interface ExifSlot {
   key: keyof ExifData;
@@ -37,6 +37,16 @@ export const FRAME_STYLE_CONFIGS: Record<FrameStyle, FrameStyleConfig> = {
     slots: [
       { key: "model", label: "Camera", placeholder: "e.g. Sony ILCE-7CM2" },
       { key: "lensModel", label: "Lens", placeholder: "e.g. FE 35MM F1.8" },
+    ],
+  },
+  "minimal-line": {
+    id: "minimal-line",
+    label: "Minimal Line",
+    description: "Inset border with floating pill badge, clean and modern",
+    slots: [
+      { key: "model", label: "Camera", placeholder: "e.g. ILCE-7CM2" },
+      { key: "focalLength", label: "Focal Length", placeholder: "e.g. 35mm", half: true },
+      { key: "aperture", label: "Aperture", placeholder: "e.g. f/1.8", half: true },
     ],
   },
 };
