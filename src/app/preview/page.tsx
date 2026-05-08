@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, SlidersHorizontal, Settings2, Image as ImageIcon, MapPin } from "lucide-react";
+import { ArrowLeft, Download, SlidersHorizontal, Settings2, Image as ImageIcon, Loader2 } from "lucide-react";
 import StylePicker from "@/components/StylePicker";
 import Filmstrip from "@/components/Filmstrip";
-import { renderFrame } from "@/lib/renderer";
+import { renderFrame, exportFrameToBlob, downloadBlob } from "@/lib/renderer";
 import { usePhotoStore } from "@/lib/photo-store";
 import { FRAME_STYLE_CONFIGS, type FrameStyle } from "@/lib/frame-styles";
 import type { ExifData } from "@/lib/exif";
@@ -32,6 +32,15 @@ function ExifInput({ label, field, value, onChange, placeholder }: {
   );
 }
 
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
 const BACKGROUND_PRESETS = [
   { color: "#ffffff", label: "White" },
   { color: "#000000", label: "Black" },
@@ -55,7 +64,8 @@ export default function PreviewPage() {
 
   const [borderWeight, setBorderWeight] = useState(1);
   const [exportQuality, setExportQuality] = useState(92);
-  const [readGpsLocation, setReadGpsLocation] = useState(false);
+  const [exportFormat, setExportFormat] = useState<"jpeg" | "png">("jpeg");
+  const [isExporting, setIsExporting] = useState(false);
   const [showMetadata, setShowMetadata] = useState(true);
   const [showLogo, setShowLogo] = useState(true);
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
@@ -91,6 +101,50 @@ export default function PreviewPage() {
     return s && s.w > 0 ? s.w / s.h : null;
   })();
 
+  const currentPaintOptions = {
+    aspectRatio: activeAspectRatio,
+    showMetadata,
+    showLogo,
+    borderWeight,
+    backgroundColor,
+  };
+
+  const handleExport = useCallback(async () => {
+    if (isExporting || photos.length === 0) return;
+    setIsExporting(true);
+
+    const exportOpts = { format: exportFormat, quality: exportQuality, paintOptions: currentPaintOptions };
+    const extension = exportFormat === "jpeg" ? "jpg" : "png";
+
+    try {
+      if (photos.length === 1) {
+        const photo = photos[0];
+        const img = await loadImage(photo.objectUrl);
+        const exif = perPhotoExif[0] ?? photo.exifData;
+        const blob = await exportFrameToBlob(img, exif, selectedStyle, exportOpts);
+        const baseName = photo.filename.replace(/\.[^.]+$/, "");
+        downloadBlob(blob, `frameshot-${baseName}.${extension}`);
+      } else {
+        const JSZip = (await import("jszip")).default;
+        const zip = new JSZip();
+
+        for (let i = 0; i < photos.length; i++) {
+          const photo = photos[i];
+          const img = await loadImage(photo.objectUrl);
+          const exif = perPhotoExif[i] ?? photo.exifData;
+          const blob = await exportFrameToBlob(img, exif, selectedStyle, exportOpts);
+          const baseName = photo.filename.replace(/\.[^.]+$/, "");
+          zip.file(`frameshot-${baseName}.${extension}`, blob);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        downloadBlob(zipBlob, `frameshot-export.zip`);
+      }
+    } finally {
+      setIsExporting(false);
+    }
+  }, [isExporting, photos, perPhotoExif, selectedStyle, exportFormat, exportQuality, currentPaintOptions]);
+
   const FADE_DURATION_MS = 200;
   const handleRatioChange = useCallback((label: string) => {
     if (label === activeRatio) return;
@@ -109,16 +163,8 @@ export default function PreviewPage() {
 
     canvas.width = 1080;
 
-    const paintOptions = {
-      aspectRatio: activeAspectRatio,
-      showMetadata,
-      showLogo,
-      borderWeight,
-      backgroundColor,
-    };
-
     const renderWithImage = (img: HTMLImageElement) => {
-      renderFrame(canvas, img, editedExif, selectedStyle, paintOptions).then(() => {
+      renderFrame(canvas, img, editedExif, selectedStyle, currentPaintOptions).then(() => {
         setCanvasReady(true);
       });
     };
@@ -352,68 +398,74 @@ export default function PreviewPage() {
             </h3>
             
             <div className="bg-[#121212] border border-neutral-800 rounded-2xl overflow-hidden">
-              {/* Quality Slider Section */}
-              <div className="p-4 flex flex-col gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="mt-1 text-neutral-400">
+              <div className="p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="text-neutral-400">
                     <ImageIcon className="w-5 h-5" />
                   </div>
                   <div className="flex-1">
-                    <div className="flex justify-between items-center mb-0.5">
-                      <h4 className="text-sm font-semibold text-white">Export Quality</h4>
-                      <span className="text-xs text-neutral-500 font-medium">{exportQuality}%</span>
-                    </div>
-                    <p className="text-xs text-neutral-500">Adjust image resolution</p>
+                    <h4 className="text-sm font-semibold text-white">Format</h4>
                   </div>
                 </div>
-                
-                <div className="relative flex items-center h-4 px-1">
-                  <input 
-                    type="range" 
-                    min="85" 
-                    max="100" 
-                    step="1" 
-                    value={exportQuality}
-                    onChange={(e) => setExportQuality(parseInt(e.target.value))}
-                    className="w-full h-1.5 bg-neutral-800 border border-neutral-700 rounded-full appearance-none cursor-pointer outline-none focus:outline-none z-10 bg-no-repeat [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md"
-                    style={{
-                      backgroundImage: 'linear-gradient(white, white)',
-                      backgroundSize: `${((exportQuality - 85) / 15) * 100}% 100%`
-                    }}
-                  />
+                <div className="flex gap-2">
+                  {(["jpeg", "png"] as const).map((fmt) => (
+                    <button
+                      key={fmt}
+                      onClick={() => setExportFormat(fmt)}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        exportFormat === fmt
+                          ? "bg-white text-black"
+                          : "bg-[#262626] text-neutral-400 hover:text-neutral-300"
+                      }`}
+                    >
+                      {fmt.toUpperCase()}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="border-t border-neutral-800" />
-
-              {/* GPS Toggle Section */}
-              <label className="p-4 flex items-center gap-3 cursor-pointer group hover:bg-neutral-800/30 transition-colors">
-                <div className="text-neutral-400">
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-semibold text-white">Read GPS Location</h4>
-                  <p className="text-xs text-neutral-500">Include location in EXIF</p>
-                </div>
-                <div className="relative inline-flex items-center">
-                  <input 
-                    type="checkbox" 
-                    className="sr-only peer" 
-                    checked={readGpsLocation}
-                    onChange={() => setReadGpsLocation(!readGpsLocation)}
-                  />
-                  <div className="w-9 h-5 bg-[#262626] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-white peer-checked:after:bg-black"></div>
-                </div>
-              </label>
+              {exportFormat === "jpeg" && (
+                <>
+                  <div className="border-t border-neutral-800" />
+                  <div className="p-4 flex flex-col gap-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-neutral-400">Quality</span>
+                      <span className="text-xs text-neutral-500 font-medium">{exportQuality}%</span>
+                    </div>
+                    <div className="relative flex items-center h-4">
+                      <input 
+                        type="range" 
+                        min="85" 
+                        max="100" 
+                        step="1" 
+                        value={exportQuality}
+                        onChange={(e) => setExportQuality(parseInt(e.target.value))}
+                        className="w-full h-1.5 bg-neutral-800 border border-neutral-700 rounded-full appearance-none cursor-pointer outline-none focus:outline-none z-10 bg-no-repeat [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md"
+                        style={{
+                          backgroundImage: 'linear-gradient(white, white)',
+                          backgroundSize: `${((exportQuality - 85) / 15) * 100}% 100%`
+                        }}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </section>
 
         </div>
         
-        {/* Export Button Area */}
         <div className="px-6 py-4 border-t border-[#262626] shrink-0 bg-[#0a0a0a]">
-          <button className="w-full bg-white text-black py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-neutral-200 transition-colors active:scale-[0.98]">
-              <Download className="w-4 h-4" /> Export Image
+          <button
+            onClick={handleExport}
+            disabled={isExporting || photos.length === 0}
+            className="w-full bg-white text-black py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-neutral-200 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+          >
+            {isExporting ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Exporting...</>
+            ) : (
+              <><Download className="w-4 h-4" /> {photos.length > 1 ? `Export All (${photos.length})` : "Export Image"}</>
+            )}
           </button>
         </div>
       </div>

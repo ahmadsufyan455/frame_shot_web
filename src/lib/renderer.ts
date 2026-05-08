@@ -15,6 +15,12 @@ export interface PaintOptions {
   backgroundColor?: string;
 }
 
+export interface ExportOptions {
+  format: "jpeg" | "png";
+  quality: number;
+  paintOptions?: PaintOptions;
+}
+
 export type FramePainter = (
   canvas: HTMLCanvasElement,
   image: HTMLImageElement,
@@ -33,35 +39,37 @@ export async function renderFrame(
   paint(canvas, image, exifData, options);
 }
 
-export async function exportFrame(
+export async function exportFrameToBlob(
   image: HTMLImageElement,
   exifData: ExifData,
   style: FrameStyle,
-  format: "jpeg" | "png",
-  originalFilename: string
-): Promise<void> {
+  exportOptions: ExportOptions
+): Promise<Blob> {
   const exportCanvas = document.createElement("canvas");
   exportCanvas.width = image.naturalWidth;
-  exportCanvas.height = image.naturalHeight;
 
-  await renderFrame(exportCanvas, image, exifData, style);
+  await renderFrame(exportCanvas, image, exifData, style, exportOptions.paintOptions);
 
-  const mimeType = format === "jpeg" ? "image/jpeg" : "image/png";
-  const baseName = originalFilename.replace(/\.[^.]+$/, "");
-  const extension = format === "jpeg" ? "jpg" : "png";
-  const downloadName = `frameshot-${baseName}.${extension}`;
+  const mimeType = exportOptions.format === "jpeg" ? "image/jpeg" : "image/png";
+  const quality = exportOptions.format === "jpeg" ? exportOptions.quality / 100 : undefined;
 
-  exportCanvas.toBlob(
-    (blob) => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = downloadName;
-      a.click();
-      URL.revokeObjectURL(url);
-    },
-    mimeType,
-    format === "jpeg" ? 0.95 : undefined
-  );
+  return new Promise((resolve, reject) => {
+    exportCanvas.toBlob(
+      (blob) => {
+        if (!blob) return reject(new Error("Failed to create blob"));
+        resolve(blob);
+      },
+      mimeType,
+      quality
+    );
+  });
+}
+
+export function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
