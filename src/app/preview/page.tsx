@@ -230,13 +230,15 @@ export default function PreviewPage() {
                 </div>
               </label>
 
-              <label className="flex items-center justify-between cursor-pointer group">
-                <span className="text-sm text-neutral-400 group-hover:text-neutral-300 transition-colors">Show Camera Logo</span>
-                <div className="relative inline-flex items-center">
-                  <input type="checkbox" className="sr-only peer" checked={showLogo} onChange={() => setShowLogo(!showLogo)} />
-                  <div className="w-9 h-5 bg-[#262626] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-white peer-checked:after:bg-black"></div>
-                </div>
-              </label>
+              {FRAME_STYLE_CONFIGS[selectedStyle].hasLogo && (
+                <label className="flex items-center justify-between cursor-pointer group">
+                  <span className="text-sm text-neutral-400 group-hover:text-neutral-300 transition-colors">Show Camera Logo</span>
+                  <div className="relative inline-flex items-center">
+                    <input type="checkbox" className="sr-only peer" checked={showLogo} onChange={() => setShowLogo(!showLogo)} />
+                    <div className="w-9 h-5 bg-[#262626] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-white peer-checked:after:bg-black"></div>
+                  </div>
+                </label>
+              )}
             </div>
 
             {/* Border Weight Slider */}

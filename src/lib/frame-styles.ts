@@ -14,6 +14,7 @@ export interface FrameStyleConfig {
   label: string;
   description: string;
   slots: ExifSlot[];
+  hasLogo?: boolean;
 }
 
 export const FRAME_STYLE_CONFIGS: Record<FrameStyle, FrameStyleConfig> = {
@@ -21,6 +22,7 @@ export const FRAME_STYLE_CONFIGS: Record<FrameStyle, FrameStyleConfig> = {
     id: "classic",
     label: "Classic",
     description: "White bottom bar, metadata on the right, clean and minimal",
+    hasLogo: true,
     slots: [
       { key: "model", label: "Camera", placeholder: "e.g. ILCE-7CM2" },
       { key: "lensModel", label: "Lens", placeholder: "e.g. FE 35mm F1.8" },
@@ -34,6 +36,7 @@ export const FRAME_STYLE_CONFIGS: Record<FrameStyle, FrameStyleConfig> = {
     id: "shot-on",
     label: "Shot On",
     description: "Centered 'Shot on' text with camera icon, minimal and bold",
+    hasLogo: true,
     slots: [
       { key: "model", label: "Camera", placeholder: "e.g. Sony ILCE-7CM2" },
       { key: "lensModel", label: "Lens", placeholder: "e.g. FE 35MM F1.8" },
