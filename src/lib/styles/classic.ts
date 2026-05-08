@@ -38,10 +38,28 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
 
   const basePadding = Math.round(width * 0.0365);
   const padding = Math.round(basePadding * weight);
-  const bottomBarHeight = showMetadata ? Math.round(width * 0.17) : Math.round(padding * 0.5);
   const imageRadius = Math.round(width * 0.018);
   const iconSize = Math.round(width * 0.097);
   const gapIconText = Math.round(width * 0.0365);
+  const modelFontSize = Math.round(width * 0.0365);
+  const lensFontSize = Math.round(width * 0.0304);
+
+  const hasModel = Boolean(exifData.model);
+  const hasLens = Boolean(exifData.lensModel);
+  const hasTopRight = Boolean(exifData.focalLength || exifData.aperture);
+  const hasBottomRight = Boolean(exifData.shutterSpeed || exifData.iso);
+  const hasTopRow = hasModel || hasTopRight;
+  const hasBottomRow = hasLens || hasBottomRight;
+  const hasAnyContent = hasTopRow || hasBottomRow || showLogo;
+
+  let bottomBarHeight: number;
+  if (!showMetadata || !hasAnyContent) {
+    bottomBarHeight = Math.round(padding * 0.5);
+  } else if (hasTopRow && hasBottomRow) {
+    bottomBarHeight = Math.round(width * 0.17);
+  } else {
+    bottomBarHeight = Math.round(width * 0.12);
+  }
 
   const imgAreaW = width - padding * 2;
   const imgAspect = options?.aspectRatio ?? image.naturalWidth / image.naturalHeight;
@@ -70,7 +88,7 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
 
   ctx.restore();
 
-  if (!showMetadata) return;
+  if (!showMetadata || !hasAnyContent) return;
 
   const barY = imgY + imgAreaH + barGap;
   const barContentX = padding + Math.round(basePadding * 0.12);
@@ -91,45 +109,78 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
     drawCameraIcon(ctx, barContentX, barCenterY - iconSize / 2, iconSize, iconBgColor, iconStrokeColor);
   }
 
-  const modelFontSize = Math.round(width * 0.0365);
-  ctx.fillStyle = primaryColor;
-  ctx.font = `600 ${modelFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
-
-  const model = exifData.model || "Unknown Camera";
-  const modelY = barCenterY - Math.round(modelFontSize * 0.15);
-  ctx.fillText(model, textLeftX, modelY);
-
-  const lensFontSize = Math.round(width * 0.0304);
-  ctx.fillStyle = secondaryColor;
-  ctx.font = `400 ${lensFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-
-  const lens = exifData.lensModel || "";
-  const lensY = modelY + Math.round(modelFontSize * 1.3);
-  if (lens) {
-    ctx.fillText(lens, textLeftX, lensY);
-  }
-
   const textRightX = barContentX + barContentW;
   const settingsFontSize = Math.round(width * 0.0334);
-  ctx.fillStyle = primaryColor;
-  ctx.font = `500 ${settingsFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-  ctx.textAlign = "right";
 
-  const focalLength = exifData.focalLength || "";
-  const aperture = exifData.aperture || "";
-  const topRight = [focalLength, aperture].filter(Boolean).join(" ");
-  ctx.fillText(topRight, textRightX, modelY);
+  if (hasTopRow && hasBottomRow) {
+    const modelY = barCenterY - Math.round(modelFontSize * 0.15);
+    const lensY = modelY + Math.round(modelFontSize * 1.3);
 
-  ctx.fillStyle = secondaryColor;
-  ctx.font = `400 ${lensFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+    if (hasModel) {
+      ctx.fillStyle = primaryColor;
+      ctx.font = `600 ${modelFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(exifData.model!, textLeftX, modelY);
+    }
 
-  const shutter = exifData.shutterSpeed || "";
-  const iso = exifData.iso || "";
-  const bottomRight = [shutter, iso].filter(Boolean).join(" ");
-  if (bottomRight) {
-    ctx.fillText(bottomRight, textRightX, lensY);
+    if (hasLens) {
+      ctx.fillStyle = secondaryColor;
+      ctx.font = `400 ${lensFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(exifData.lensModel!, textLeftX, lensY);
+    }
+
+    if (hasTopRight) {
+      const topRight = [exifData.focalLength, exifData.aperture].filter(Boolean).join(" ");
+      ctx.fillStyle = primaryColor;
+      ctx.font = `500 ${settingsFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(topRight, textRightX, modelY);
+    }
+
+    if (hasBottomRight) {
+      const bottomRight = [exifData.shutterSpeed, exifData.iso].filter(Boolean).join(" ");
+      ctx.fillStyle = secondaryColor;
+      ctx.font = `400 ${lensFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(bottomRight, textRightX, lensY);
+    }
+  } else {
+    const singleRowY = barCenterY + Math.round(modelFontSize * 0.3);
+
+    if (hasModel) {
+      ctx.fillStyle = primaryColor;
+      ctx.font = `600 ${modelFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(exifData.model!, textLeftX, singleRowY);
+    } else if (hasLens) {
+      ctx.fillStyle = secondaryColor;
+      ctx.font = `400 ${lensFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(exifData.lensModel!, textLeftX, singleRowY);
+    }
+
+    if (hasTopRight) {
+      const topRight = [exifData.focalLength, exifData.aperture].filter(Boolean).join(" ");
+      ctx.fillStyle = primaryColor;
+      ctx.font = `500 ${settingsFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(topRight, textRightX, singleRowY);
+    } else if (hasBottomRight) {
+      const bottomRight = [exifData.shutterSpeed, exifData.iso].filter(Boolean).join(" ");
+      ctx.fillStyle = secondaryColor;
+      ctx.font = `400 ${lensFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(bottomRight, textRightX, singleRowY);
+    }
   }
 };
 

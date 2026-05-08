@@ -3,16 +3,9 @@
 import { useRef, useEffect } from "react";
 import type { ExifData } from "@/lib/exif";
 import type { PaintOptions } from "@/lib/renderer";
+import { FRAME_STYLES, type FrameStyle } from "@/lib/frame-styles";
 
-export type FrameStyle = "classic";
-
-const FRAME_STYLES: { id: FrameStyle; label: string; description: string }[] = [
-  {
-    id: "classic",
-    label: "Classic",
-    description: "White bottom bar, metadata on the right, clean and minimal",
-  },
-];
+export type { FrameStyle } from "@/lib/frame-styles";
 
 interface StylePickerProps {
   selectedStyle: FrameStyle;

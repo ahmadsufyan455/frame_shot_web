@@ -4,10 +4,11 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Download, SlidersHorizontal, Settings2, Image as ImageIcon, MapPin } from "lucide-react";
-import StylePicker, { type FrameStyle } from "@/components/StylePicker";
+import StylePicker from "@/components/StylePicker";
 import Filmstrip from "@/components/Filmstrip";
 import { renderFrame } from "@/lib/renderer";
 import { usePhotoStore } from "@/lib/photo-store";
+import { FRAME_STYLE_CONFIGS, type FrameStyle } from "@/lib/frame-styles";
 import type { ExifData } from "@/lib/exif";
 
 function ExifInput({ label, field, value, onChange, placeholder }: {
@@ -305,16 +306,40 @@ export default function PreviewPage() {
               <SlidersHorizontal className="w-4 h-4 text-neutral-400" /> Metadata Overrides
             </h3>
             
-            <div className="flex flex-col gap-4">
-              <ExifInput label="Camera" field="model" value={editedExif.model} onChange={(v) => setEditedExif(prev => ({ ...prev, model: v }))} placeholder="e.g. ILCE-7CM2" />
-              <ExifInput label="Lens" field="lensModel" value={editedExif.lensModel} onChange={(v) => setEditedExif(prev => ({ ...prev, lensModel: v }))} placeholder="e.g. FE 35mm F1.8" />
-              <div className="grid grid-cols-2 gap-4 mt-1">
-                <ExifInput label="Aperture" field="aperture" value={editedExif.aperture} onChange={(v) => setEditedExif(prev => ({ ...prev, aperture: v }))} placeholder="e.g. f/1.8" />
-                <ExifInput label="Shutter" field="shutterSpeed" value={editedExif.shutterSpeed} onChange={(v) => setEditedExif(prev => ({ ...prev, shutterSpeed: v }))} placeholder="e.g. 1/500s" />
-                <ExifInput label="ISO" field="iso" value={editedExif.iso} onChange={(v) => setEditedExif(prev => ({ ...prev, iso: v }))} placeholder="e.g. ISO 800" />
-                <ExifInput label="Focal Length" field="focalLength" value={editedExif.focalLength} onChange={(v) => setEditedExif(prev => ({ ...prev, focalLength: v }))} placeholder="e.g. 35mm" />
-              </div>
-            </div>
+            {(() => {
+              const config = FRAME_STYLE_CONFIGS[selectedStyle];
+              const fullWidthSlots = config.slots.filter(s => !s.half);
+              const halfWidthSlots = config.slots.filter(s => s.half);
+
+              return (
+                <div className="flex flex-col gap-4">
+                  {fullWidthSlots.map(slot => (
+                    <ExifInput
+                      key={slot.key}
+                      label={slot.label}
+                      field={slot.key}
+                      value={editedExif[slot.key]}
+                      onChange={(v) => setEditedExif(prev => ({ ...prev, [slot.key]: v }))}
+                      placeholder={slot.placeholder}
+                    />
+                  ))}
+                  {halfWidthSlots.length > 0 && (
+                    <div className="grid grid-cols-2 gap-4 mt-1">
+                      {halfWidthSlots.map(slot => (
+                        <ExifInput
+                          key={slot.key}
+                          label={slot.label}
+                          field={slot.key}
+                          value={editedExif[slot.key]}
+                          onChange={(v) => setEditedExif(prev => ({ ...prev, [slot.key]: v }))}
+                          placeholder={slot.placeholder}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </section>
 
           <hr className="border-[#262626]" />
