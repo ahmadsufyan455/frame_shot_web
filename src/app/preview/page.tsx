@@ -75,6 +75,7 @@ export default function PreviewPage() {
   const [selectedStyle, setSelectedStyle] = useState<FrameStyle>('classic');
   const [canvasReady, setCanvasReady] = useState(false);
   const [perPhotoExif, setPerPhotoExif] = useState<Record<number, ExifData>>({});
+  const [loadedImg, setLoadedImg] = useState<HTMLImageElement | null>(null);
   const loadedImgRef = useRef<HTMLImageElement | null>(null);
   const loadedImgUrl = useRef<string | null>(null);
 
@@ -210,11 +211,13 @@ export default function PreviewPage() {
     }
 
     loadedImgRef.current = null;
+    setLoadedImg(null);
     loadedImgUrl.current = activePhoto.objectUrl;
     const img = new Image();
     img.src = activePhoto.objectUrl;
     img.onload = () => {
       loadedImgRef.current = img;
+      setLoadedImg(img);
       loadedImgUrl.current = activePhoto.objectUrl;
       renderWithImage(img);
     };
@@ -280,7 +283,7 @@ export default function PreviewPage() {
           <StylePicker
             selectedStyle={selectedStyle}
             onStyleChange={setSelectedStyle}
-            image={loadedImgRef.current}
+            image={loadedImg}
             exifData={editedExif}
           />
         </div>
