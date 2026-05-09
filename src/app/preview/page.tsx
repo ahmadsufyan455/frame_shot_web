@@ -166,8 +166,11 @@ export default function PreviewPage() {
 
   useEffect(() => {
     if (!storageWarning) return;
-    addToast("error", storageWarning);
-    clearStorageWarning();
+    const id = setTimeout(() => {
+      addToast("error", storageWarning);
+      clearStorageWarning();
+    }, 0);
+    return () => clearTimeout(id);
   }, [storageWarning, addToast]);
 
   const resolveExportUrl = useCallback(
@@ -398,11 +401,11 @@ export default function PreviewPage() {
 
       {/* Left Column (Canvas + Bottom Bar) */}
       <div className="flex min-h-0 flex-1 flex-col border-[#262626] lg:border-r">
-        <header className="grid h-14 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-[#262626] bg-[#0a0a0a] px-4 shrink-0 z-10 sm:px-6">
+        <header className="grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-[#262626] bg-[#0a0a0a] px-4 shrink-0 z-10 sm:px-6">
           <Link href="/" className="flex items-center gap-2 justify-self-start text-sm text-[#a1a1a1] hover:text-white transition-colors whitespace-nowrap">
             <ArrowLeft className="w-4 h-4" /> Back
           </Link>
-          <div className="min-w-0 max-w-[42vw] justify-self-center overflow-hidden sm:max-w-[56vw] lg:max-w-[520px]">
+          <div className="min-w-0 w-full overflow-hidden lg:max-w-[520px] lg:justify-self-center">
             <Filmstrip photos={photos} activeIndex={activeIndex} />
           </div>
           <span className="hidden justify-self-end text-xs text-neutral-600 tabular-nums lg:inline">
