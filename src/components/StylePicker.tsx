@@ -13,11 +13,6 @@ interface StylePickerProps {
   exifData: ExifData;
 }
 
-/**
- * Renders a live canvas thumbnail only for the selected style.
- * Non-selected styles show a static placeholder — their painters
- * are never imported until the user selects them.
- */
 function StyleThumbnail({
   styleId,
   image,
@@ -74,18 +69,11 @@ function StylePicker({
             `}
           >
             <div className={`w-full aspect-[4/5] bg-neutral-800 rounded overflow-hidden transition-opacity duration-300 ${isActive ? "opacity-100" : "opacity-60"}`}>
-              {isActive ? (
-                <StyleThumbnail
-                  styleId={style.id}
-                  image={image}
-                  exifData={exifData}
-                />
-              ) : (
-                /* Static placeholder — no canvas, no dynamic import */
-                <div className="w-full h-full flex items-end justify-center pb-1">
-                  <div className="w-4/5 h-[55%] rounded-sm bg-neutral-700 opacity-50" />
-                </div>
-              )}
+              <StyleThumbnail
+                styleId={style.id}
+                image={image}
+                exifData={exifData}
+              />
             </div>
             <span className={`text-[9px] leading-tight mt-1 block whitespace-nowrap transition-colors duration-300 ${isActive ? "text-white" : "text-neutral-500"}`}>{style.label}</span>
           </button>
