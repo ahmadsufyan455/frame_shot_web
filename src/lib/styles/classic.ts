@@ -49,18 +49,23 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
   const modelFontSize = Math.round(width * 0.0365);
   const lensFontSize = Math.round(width * 0.0304);
 
-  const hasModel = Boolean(exifData.model);
-  const hasLens = Boolean(exifData.lensModel);
-  const hasTopRight = Boolean(exifData.focalLength || exifData.aperture);
-  const hasBottomRight = Boolean(exifData.shutterSpeed || exifData.iso);
-  const hasTopRow = hasModel || hasTopRight;
-  const hasBottomRow = hasLens || hasBottomRight;
-  const hasAnyContent = hasTopRow || hasBottomRow || showLogo;
+  const leftLines: Array<{ text: string; style: "model" | "lens" }> = [];
+  if (exifData.model) leftLines.push({ text: exifData.model, style: "model" });
+  if (exifData.lensModel) leftLines.push({ text: exifData.lensModel, style: "lens" });
+
+  const rightLines: Array<{ text: string; style: "settingsTop" | "settingsBottom" }> = [];
+  const topRightStr = [exifData.focalLength, exifData.aperture].filter(Boolean).join(" ");
+  if (topRightStr) rightLines.push({ text: topRightStr, style: "settingsTop" });
+  const bottomRightStr = [exifData.shutterSpeed, exifData.iso].filter(Boolean).join(" ");
+  if (bottomRightStr) rightLines.push({ text: bottomRightStr, style: "settingsBottom" });
+
+  const rowsCount = Math.max(leftLines.length, rightLines.length);
+  const hasAnyContent = rowsCount > 0 || showLogo;
 
   let bottomBarHeight: number;
   if (!showMetadata || !hasAnyContent) {
     bottomBarHeight = Math.round(padding * 0.5);
-  } else if (hasTopRow && hasBottomRow) {
+  } else if (rowsCount === 2) {
     bottomBarHeight = Math.round(width * 0.17);
   } else {
     bottomBarHeight = Math.round(width * 0.12);
@@ -117,75 +122,40 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
   const textRightX = barContentX + barContentW;
   const settingsFontSize = Math.round(width * 0.0334);
 
-  if (hasTopRow && hasBottomRow) {
-    const modelY = barCenterY - Math.round(modelFontSize * 0.15);
-    const lensY = modelY + Math.round(modelFontSize * 1.3);
-
-    if (hasModel) {
+  const drawTextItem = (
+    item: { text: string; style: string },
+    x: number,
+    y: number,
+    align: "left" | "right"
+  ) => {
+    if (item.style === "model") {
       ctx.fillStyle = primaryColor;
       ctx.font = `600 ${modelFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "alphabetic";
-      ctx.fillText(exifData.model!, textLeftX, modelY);
-    }
-
-    if (hasLens) {
+    } else if (item.style === "lens" || item.style === "settingsBottom") {
       ctx.fillStyle = secondaryColor;
       ctx.font = `400 ${lensFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "alphabetic";
-      ctx.fillText(exifData.lensModel!, textLeftX, lensY);
-    }
-
-    if (hasTopRight) {
-      const topRight = [exifData.focalLength, exifData.aperture].filter(Boolean).join(" ");
+    } else if (item.style === "settingsTop") {
       ctx.fillStyle = primaryColor;
       ctx.font = `500 ${settingsFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-      ctx.textAlign = "right";
-      ctx.textBaseline = "alphabetic";
-      ctx.fillText(topRight, textRightX, modelY);
     }
+    ctx.textAlign = align;
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(item.text, x, y);
+  };
 
-    if (hasBottomRight) {
-      const bottomRight = [exifData.shutterSpeed, exifData.iso].filter(Boolean).join(" ");
-      ctx.fillStyle = secondaryColor;
-      ctx.font = `400 ${lensFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-      ctx.textAlign = "right";
-      ctx.textBaseline = "alphabetic";
-      ctx.fillText(bottomRight, textRightX, lensY);
-    }
-  } else {
-    const singleRowY = barCenterY + Math.round(modelFontSize * 0.3);
+  if (rowsCount === 2) {
+    const topY = barCenterY - Math.round(modelFontSize * 0.15);
+    const bottomY = topY + Math.round(modelFontSize * 1.3);
 
-    if (hasModel) {
-      ctx.fillStyle = primaryColor;
-      ctx.font = `600 ${modelFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "alphabetic";
-      ctx.fillText(exifData.model!, textLeftX, singleRowY);
-    } else if (hasLens) {
-      ctx.fillStyle = secondaryColor;
-      ctx.font = `400 ${lensFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "alphabetic";
-      ctx.fillText(exifData.lensModel!, textLeftX, singleRowY);
-    }
+    if (leftLines[0]) drawTextItem(leftLines[0], textLeftX, topY, "left");
+    if (leftLines[1]) drawTextItem(leftLines[1], textLeftX, bottomY, "left");
 
-    if (hasTopRight) {
-      const topRight = [exifData.focalLength, exifData.aperture].filter(Boolean).join(" ");
-      ctx.fillStyle = primaryColor;
-      ctx.font = `500 ${settingsFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-      ctx.textAlign = "right";
-      ctx.textBaseline = "alphabetic";
-      ctx.fillText(topRight, textRightX, singleRowY);
-    } else if (hasBottomRight) {
-      const bottomRight = [exifData.shutterSpeed, exifData.iso].filter(Boolean).join(" ");
-      ctx.fillStyle = secondaryColor;
-      ctx.font = `400 ${lensFontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-      ctx.textAlign = "right";
-      ctx.textBaseline = "alphabetic";
-      ctx.fillText(bottomRight, textRightX, singleRowY);
-    }
+    if (rightLines[0]) drawTextItem(rightLines[0], textRightX, topY, "right");
+    if (rightLines[1]) drawTextItem(rightLines[1], textRightX, bottomY, "right");
+  } else if (rowsCount === 1) {
+    const singleY = barCenterY + Math.round(modelFontSize * 0.3);
+    if (leftLines[0]) drawTextItem(leftLines[0], textLeftX, singleY, "left");
+    if (rightLines[0]) drawTextItem(rightLines[0], textRightX, singleY, "right");
   }
 };
 
