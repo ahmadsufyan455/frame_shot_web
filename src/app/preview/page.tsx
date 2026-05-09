@@ -8,7 +8,7 @@ import StylePicker from "@/components/StylePicker";
 import Filmstrip from "@/components/Filmstrip";
 import Toast, { type ToastMessage } from "@/components/Toast";
 import { renderFrame, exportFrameToBlob, downloadBlob } from "@/lib/renderer";
-import { usePhotoStore } from "@/lib/photo-store";
+import { usePhotoStore, getPhotoBlob, clearStorageWarning, type PhotoEntry } from "@/lib/photo-store";
 import { FRAME_STYLE_CONFIGS, type FrameStyle } from "@/lib/frame-styles";
 import type { ExifData } from "@/lib/exif";
 
@@ -96,7 +96,7 @@ const ASPECT_RATIOS = [
 export default function PreviewPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const router = useRouter();
-  const { photos, activeIndex, isHydrated } = usePhotoStore();
+  const { photos, activeIndex, isHydrated, storageWarning } = usePhotoStore();
   const activePhoto = photos[activeIndex];
 
   const [borderWeight, setBorderWeight] = useState(1);
@@ -163,22 +163,51 @@ export default function PreviewPage() {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
+  useEffect(() => {
+    if (!storageWarning) return;
+    addToast("error", storageWarning);
+    clearStorageWarning();
+  }, [storageWarning, addToast]);
+
+  const resolveExportUrl = useCallback(
+    async (photo: PhotoEntry): Promise<{ url: string; revoke: () => void; isLowRes: boolean }> => {
+      if (photo.file) {
+        const url = URL.createObjectURL(photo.file);
+        return { url, revoke: () => URL.revokeObjectURL(url), isLowRes: false };
+      }
+      const fullBlob = await getPhotoBlob(photo.id);
+      if (fullBlob) {
+        const url = URL.createObjectURL(fullBlob);
+        return { url, revoke: () => URL.revokeObjectURL(url), isLowRes: false };
+      }
+      return { url: photo.objectUrl, revoke: () => {}, isLowRes: true };
+    },
+    []
+  );
+
   const handleExport = useCallback(async () => {
     if (isExporting || photos.length === 0 || !canvasReady) return;
     setIsExporting(true);
 
     const exportOpts = { format: exportFormat, quality: exportQuality, paintOptions: currentPaintOptions };
     const extension = exportFormat === "jpeg" ? "jpg" : "png";
+    let warnedLowRes = false;
 
     try {
       if (photos.length === 1) {
         const photo = photos[0];
-        const img = await loadImage(photo.objectUrl);
+        const { url, revoke, isLowRes } = await resolveExportUrl(photo);
+        const img = await loadImage(url);
+        revoke();
         const exif = perPhotoExif[0] ?? photo.exifData;
         const blob = await exportFrameToBlob(img, exif, selectedStyle, exportOpts);
         const baseName = photo.filename.replace(/\.[^.]+$/, "");
         downloadBlob(blob, `frameshot-${baseName}.${extension}`);
-        addToast("success", "Image exported successfully");
+        if (isLowRes) {
+          addToast("error", "Exported at preview quality — original was not saved due to storage limits");
+        } else {
+          addToast("success", "Image exported successfully");
+        }
       } else {
         const JSZip = (await import("jszip")).default;
         const zip = new JSZip();
@@ -189,7 +218,9 @@ export default function PreviewPage() {
         for (let i = 0; i < photos.length; i++) {
           const photo = photos[i];
           try {
-            const img = await loadImage(photo.objectUrl);
+            const { url, revoke, isLowRes } = await resolveExportUrl(photo);
+            const img = await loadImage(url);
+            revoke();
             const exif = perPhotoExif[i] ?? photo.exifData;
             const blob = await exportFrameToBlob(img, exif, selectedStyle, exportOpts);
 
@@ -200,6 +231,7 @@ export default function PreviewPage() {
 
             zip.file(`frameshot-${baseName}.${extension}`, blob);
             succeeded++;
+            if (isLowRes && !warnedLowRes) warnedLowRes = true;
           } catch {
             failed++;
           }
@@ -212,6 +244,8 @@ export default function PreviewPage() {
           downloadBlob(zipBlob, `frameshot-export.zip`);
           if (failed > 0) {
             addToast("success", `Exported ${succeeded}/${photos.length} photos (${failed} failed)`);
+          } else if (warnedLowRes) {
+            addToast("success", `Exported — some photos at preview quality due to storage limits`);
           } else {
             addToast("success", `All ${succeeded} photos exported successfully`);
           }
@@ -222,7 +256,7 @@ export default function PreviewPage() {
     } finally {
       setIsExporting(false);
     }
-  }, [isExporting, photos, perPhotoExif, selectedStyle, exportFormat, exportQuality, canvasReady, currentPaintOptions, addToast]);
+  }, [isExporting, photos, perPhotoExif, selectedStyle, exportFormat, exportQuality, canvasReady, currentPaintOptions, addToast, resolveExportUrl]);
 
   const FADE_DURATION_MS = 200;
   const handleRatioChange = useCallback((label: string) => {
