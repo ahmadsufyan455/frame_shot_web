@@ -25,6 +25,7 @@ export default function Filmstrip({ photos, activeIndex }: FilmstripProps) {
                   : "border-transparent opacity-60 hover:opacity-100 hover:border-neutral-600"
                   }`}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={photo.objectUrl}
                   alt={photo.filename}
