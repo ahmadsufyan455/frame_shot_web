@@ -33,10 +33,10 @@ export default function UploadZone() {
         const file = acceptedFiles[i];
         const exifData = await extractExif(file);
         const objectUrl = URL.createObjectURL(file);
-        entries.push({ objectUrl, exifData, filename: file.name });
+        entries.push({ id: crypto.randomUUID(), objectUrl, exifData, filename: file.name, file });
         setProgress({ done: i + 1, total: acceptedFiles.length });
       }
-      addPhotos(entries);
+      await addPhotos(entries);
       router.push("/preview");
     } catch {
       setIsUploading(false);

@@ -17,7 +17,7 @@ export default function Filmstrip({ photos, activeIndex }: FilmstripProps) {
         {photos.map((photo, i) => {
           const isActive = i === activeIndex;
           return (
-            <div key={photo.objectUrl} className="relative group flex-shrink-0">
+            <div key={photo.id} className="relative group flex-shrink-0">
               <button
                 onClick={() => setActiveIndex(i)}
                 className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all duration-200 ${isActive

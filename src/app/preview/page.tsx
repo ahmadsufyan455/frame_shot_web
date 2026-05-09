@@ -59,7 +59,7 @@ const ASPECT_RATIOS = [
 export default function PreviewPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const router = useRouter();
-  const { photos, activeIndex } = usePhotoStore();
+  const { photos, activeIndex, isHydrated } = usePhotoStore();
   const activePhoto = photos[activeIndex];
 
   const [borderWeight, setBorderWeight] = useState(1);
@@ -191,10 +191,12 @@ export default function PreviewPage() {
   }, [activeRatio]);
 
   useEffect(() => {
-    if (!activePhoto) {
+    if (isHydrated && !activePhoto) {
       router.replace("/");
       return;
     }
+
+    if (!activePhoto) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -223,7 +225,7 @@ export default function PreviewPage() {
       loadedImgUrl.current = activePhoto.objectUrl;
       renderWithImage(img);
     };
-  }, [activePhoto, editedExif, activeRatio, selectedStyle, currentPaintOptions, router]);
+  }, [activePhoto, editedExif, activeRatio, selectedStyle, currentPaintOptions, isHydrated, router]);
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-[#0a0a0a] text-white font-sans lg:flex-row">
