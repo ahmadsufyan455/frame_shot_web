@@ -72,11 +72,20 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
   }
 
   const imgAreaW = width - padding * 2;
-  const imgAspect = options?.aspectRatio ?? iw(image) / ih(image);
-  const imgAreaH = Math.round(imgAreaW / imgAspect);
+  let totalHeight: number;
+  let imgAreaH: number;
 
   const barGap = Math.round(padding * 0.3);
-  const totalHeight = padding + imgAreaH + barGap + bottomBarHeight + Math.round(padding * 0.3);
+  const bottomPadding = Math.round(padding * 0.3);
+
+  if (options?.aspectRatio) {
+    totalHeight = Math.round(width / options.aspectRatio);
+    imgAreaH = Math.max(1, totalHeight - padding - barGap - bottomBarHeight - bottomPadding);
+  } else {
+    const imgAspect = iw(image) / ih(image);
+    imgAreaH = Math.round(imgAreaW / imgAspect);
+    totalHeight = padding + imgAreaH + barGap + bottomBarHeight + bottomPadding;
+  }
 
   canvas.width = width;
   canvas.height = totalHeight;

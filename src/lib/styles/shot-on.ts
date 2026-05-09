@@ -44,8 +44,6 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
   const padding = Math.round(basePadding * weight);
 
   const imgAreaW = width - padding * 2;
-  const imgAspect = options?.aspectRatio ?? iw(image) / ih(image);
-  const imgAreaH = Math.round(imgAreaW / imgAspect);
   const imageRadius = Math.round(width * 0.018);
 
   const iconSize = Math.round(width * 0.08);
@@ -75,7 +73,17 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
     bottomBarHeight += bottomPadding;
   }
 
-  const totalHeight = padding + imgAreaH + bottomBarHeight;
+  let totalHeight: number;
+  let imgAreaH: number;
+
+  if (options?.aspectRatio) {
+    totalHeight = Math.round(width / options.aspectRatio);
+    imgAreaH = Math.max(1, totalHeight - padding - bottomBarHeight);
+  } else {
+    const imgAspect = iw(image) / ih(image);
+    imgAreaH = Math.round(imgAreaW / imgAspect);
+    totalHeight = padding + imgAreaH + bottomBarHeight;
+  }
 
   canvas.width = width;
   canvas.height = totalHeight;
