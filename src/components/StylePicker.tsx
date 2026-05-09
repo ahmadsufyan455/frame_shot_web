@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { memo, useRef, useEffect } from "react";
 import type { ExifData } from "@/lib/exif";
 import { FRAME_STYLES, type FrameStyle } from "@/lib/frame-styles";
 
@@ -43,7 +43,7 @@ function StyleThumbnail({
   );
 }
 
-export default function StylePicker({
+function StylePicker({
   selectedStyle,
   onStyleChange,
   image,
@@ -82,3 +82,5 @@ export default function StylePicker({
     </div>
   );
 }
+
+export default memo(StylePicker);

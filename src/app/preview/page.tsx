@@ -41,6 +41,17 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+function useDebouncedValue<T>(value: T, delayMs: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedValue(value), delayMs);
+    return () => window.clearTimeout(timeout);
+  }, [value, delayMs]);
+
+  return debouncedValue;
+}
+
 const BACKGROUND_PRESETS = [
   { color: "#ffffff", label: "White" },
   { color: "#000000", label: "Black" },
@@ -113,6 +124,9 @@ export default function PreviewPage() {
     borderWeight,
     backgroundColor,
   }), [activeAspectRatio, showMetadata, showLogo, borderWeight, backgroundColor]);
+  const debouncedEditedExif = useDebouncedValue(editedExif, 120);
+  const debouncedPaintOptions = useDebouncedValue(currentPaintOptions, 120);
+  const thumbnailExif = useMemo(() => activePhoto?.exifData ?? {}, [activePhoto]);
 
   const addToast = useCallback((type: "success" | "error", text: string) => {
     setToasts(prev => [...prev, { id: crypto.randomUUID(), type, text }]);
@@ -204,7 +218,7 @@ export default function PreviewPage() {
     canvas.width = 1080;
 
     const renderWithImage = (img: HTMLImageElement) => {
-      renderFrame(canvas, img, editedExif, selectedStyle, currentPaintOptions).then(() => {
+      renderFrame(canvas, img, debouncedEditedExif, selectedStyle, debouncedPaintOptions).then(() => {
         setCanvasReady(true);
       });
     };
@@ -225,7 +239,7 @@ export default function PreviewPage() {
       loadedImgUrl.current = activePhoto.objectUrl;
       renderWithImage(img);
     };
-  }, [activePhoto, editedExif, activeRatio, selectedStyle, currentPaintOptions, isHydrated, router]);
+  }, [activePhoto, debouncedEditedExif, activeRatio, selectedStyle, debouncedPaintOptions, isHydrated, router]);
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-[#0a0a0a] text-white font-sans lg:flex-row">
@@ -306,7 +320,7 @@ export default function PreviewPage() {
             selectedStyle={selectedStyle}
             onStyleChange={setSelectedStyle}
             image={loadedImg}
-            exifData={editedExif}
+            exifData={thumbnailExif}
           />
 
           <label
