@@ -52,6 +52,32 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
   return debouncedValue;
 }
 
+const DESKTOP_PREVIEW_CANVAS_WIDTH = 1080;
+const COMPACT_PREVIEW_CANVAS_WIDTH = 720;
+const COMPACT_PREVIEW_QUERY = "(max-width: 1023px)";
+
+function getPreviewCanvasWidth() {
+  if (typeof window === "undefined") return DESKTOP_PREVIEW_CANVAS_WIDTH;
+  return window.matchMedia(COMPACT_PREVIEW_QUERY).matches
+    ? COMPACT_PREVIEW_CANVAS_WIDTH
+    : DESKTOP_PREVIEW_CANVAS_WIDTH;
+}
+
+function usePreviewCanvasWidth() {
+  const [canvasWidth, setCanvasWidth] = useState(getPreviewCanvasWidth);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(COMPACT_PREVIEW_QUERY);
+    const updateCanvasWidth = () => setCanvasWidth(getPreviewCanvasWidth());
+
+    updateCanvasWidth();
+    mediaQuery.addEventListener("change", updateCanvasWidth);
+    return () => mediaQuery.removeEventListener("change", updateCanvasWidth);
+  }, []);
+
+  return canvasWidth;
+}
+
 const BACKGROUND_PRESETS = [
   { color: "#ffffff", label: "White" },
   { color: "#000000", label: "Black" },
@@ -88,6 +114,7 @@ export default function PreviewPage() {
   const [loadedImg, setLoadedImg] = useState<HTMLImageElement | null>(null);
   const loadedImgRef = useRef<HTMLImageElement | null>(null);
   const loadedImgUrl = useRef<string | null>(null);
+  const previewCanvasWidth = usePreviewCanvasWidth();
 
   const editedExif = useMemo(
     () => perPhotoExif[activeIndex] ?? activePhoto?.exifData ?? {},
@@ -215,7 +242,7 @@ export default function PreviewPage() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    canvas.width = 1080;
+    canvas.width = previewCanvasWidth;
 
     const renderWithImage = (img: HTMLImageElement) => {
       renderFrame(canvas, img, debouncedEditedExif, selectedStyle, debouncedPaintOptions).then(() => {
@@ -239,7 +266,7 @@ export default function PreviewPage() {
       loadedImgUrl.current = activePhoto.objectUrl;
       renderWithImage(img);
     };
-  }, [activePhoto, debouncedEditedExif, activeRatio, selectedStyle, debouncedPaintOptions, isHydrated, router]);
+  }, [activePhoto, debouncedEditedExif, activeRatio, selectedStyle, debouncedPaintOptions, previewCanvasWidth, isHydrated, router]);
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-[#0a0a0a] text-white font-sans lg:flex-row">
