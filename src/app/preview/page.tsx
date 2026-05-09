@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, SlidersHorizontal, Settings2, Image as ImageIcon, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, SlidersHorizontal, Settings2, Image as ImageIcon, Loader2, X } from "lucide-react";
 import StylePicker from "@/components/StylePicker";
 import Filmstrip from "@/components/Filmstrip";
 import Toast, { type ToastMessage } from "@/components/Toast";
@@ -12,9 +12,8 @@ import { usePhotoStore } from "@/lib/photo-store";
 import { FRAME_STYLE_CONFIGS, type FrameStyle } from "@/lib/frame-styles";
 import type { ExifData } from "@/lib/exif";
 
-function ExifInput({ label, field, value, onChange, placeholder }: {
+function ExifInput({ label, value, onChange, placeholder }: {
   label: string;
-  field: string;
   value?: string;
   onChange: (v: string) => void;
   placeholder: string;
@@ -79,7 +78,10 @@ export default function PreviewPage() {
   const loadedImgRef = useRef<HTMLImageElement | null>(null);
   const loadedImgUrl = useRef<string | null>(null);
 
-  const editedExif = perPhotoExif[activeIndex] ?? activePhoto?.exifData ?? {};
+  const editedExif = useMemo(
+    () => perPhotoExif[activeIndex] ?? activePhoto?.exifData ?? {},
+    [perPhotoExif, activeIndex, activePhoto]
+  );
   const setEditedExif = useCallback((updater: ExifData | ((prev: ExifData) => ExifData)) => {
     setPerPhotoExif(prev => ({
       ...prev,
@@ -104,13 +106,13 @@ export default function PreviewPage() {
     return s && s.w > 0 ? s.w / s.h : null;
   })();
 
-  const currentPaintOptions = {
+  const currentPaintOptions = useMemo(() => ({
     aspectRatio: activeAspectRatio,
     showMetadata,
     showLogo,
     borderWeight,
     backgroundColor,
-  };
+  }), [activeAspectRatio, showMetadata, showLogo, borderWeight, backgroundColor]);
 
   const addToast = useCallback((type: "success" | "error", text: string) => {
     setToasts(prev => [...prev, { id: crypto.randomUUID(), type, text }]);
@@ -221,63 +223,81 @@ export default function PreviewPage() {
       loadedImgUrl.current = activePhoto.objectUrl;
       renderWithImage(img);
     };
-  }, [activePhoto, editedExif, activeRatio, selectedStyle, showMetadata, showLogo, borderWeight, backgroundColor, router]);
+  }, [activePhoto, editedExif, activeRatio, selectedStyle, currentPaintOptions, router]);
 
   return (
-    <div className="flex h-screen bg-[#0a0a0a] text-white overflow-hidden font-sans">
-      
+    <div className="flex h-dvh flex-col overflow-hidden bg-[#0a0a0a] text-white font-sans lg:flex-row">
+      <input id="mobile-customize-sheet" type="checkbox" aria-label="Customize sheet" className="peer sr-only" />
+
       {/* Left Column (Canvas + Bottom Bar) */}
-      <div className="flex-1 flex flex-col min-w-0 border-r border-[#262626]">
-        <header className="h-14 flex items-center justify-between px-6 border-b border-[#262626] shrink-0 bg-[#0a0a0a] z-10">
-          <Link href="/" className="flex items-center gap-2 text-sm text-[#a1a1a1] hover:text-white transition-colors">
+      <div className="flex min-h-0 flex-1 flex-col border-[#262626] lg:border-r">
+        <header className="grid h-14 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-[#262626] bg-[#0a0a0a] px-4 shrink-0 z-10 sm:px-6">
+          <Link href="/" className="flex items-center gap-2 justify-self-start text-sm text-[#a1a1a1] hover:text-white transition-colors whitespace-nowrap">
             <ArrowLeft className="w-4 h-4" /> Back
           </Link>
-          <Filmstrip photos={photos} activeIndex={activeIndex} />
-          <span className="text-xs text-neutral-600 tabular-nums">
+          <div className="min-w-0 max-w-[42vw] justify-self-center overflow-hidden sm:max-w-[56vw] lg:max-w-[520px]">
+            <Filmstrip photos={photos} activeIndex={activeIndex} />
+          </div>
+          <span className="hidden justify-self-end text-xs text-neutral-600 tabular-nums lg:inline">
             {photos.length > 1 ? `${activeIndex + 1}/${photos.length}` : ""}
           </span>
+          <button
+            onClick={handleExport}
+            disabled={isExporting || photos.length === 0 || !canvasReady}
+            className="flex h-9 min-w-9 items-center justify-center justify-self-end gap-2 rounded-lg bg-white px-3 text-xs font-bold text-black transition-colors hover:bg-neutral-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 lg:hidden"
+            aria-label={photos.length > 1 ? `Export all ${photos.length} photos` : "Export image"}
+          >
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            <span>Export</span>
+          </button>
         </header>
-        <div className="flex-1 min-h-0 overflow-hidden flex items-center justify-center p-8 bg-[#121212] relative">
-          <canvas 
-            ref={canvasRef} 
-            id="frame-canvas" 
+        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#121212] p-4 relative sm:p-6 lg:p-8">
+          <canvas
+            ref={canvasRef}
+            id="frame-canvas"
             className={`max-w-full max-h-full object-contain shadow-2xl rounded transition-all duration-200 ease-out ${canvasReady ? "blur-0 scale-100" : "blur-md scale-[0.98]"}`}
           />
         </div>
 
         {/* Bottom Bar: Aspect Ratios (centered) + Frame Styles (scrollable) */}
-        <div className="border-t border-[#262626] bg-[#0a0a0a] px-6 py-2 flex flex-col gap-3 shrink-0 z-10">
-          <div className="flex gap-5 items-center justify-center">
-            {ASPECT_RATIOS.map(ratio => {
-              const isOriginal = ratio.w === 0;
-              const shapeW = isOriginal ? 20 : Math.max(14, Math.min(32, (ratio.w / ratio.h) * 24));
-              const shapeH = isOriginal ? 26 : Math.max(14, Math.min(32, (ratio.h / ratio.w) * 24));
-              const isActive = activeRatio === ratio.label;
+        <div className="border-t border-[#262626] bg-[#0a0a0a] px-4 py-2 flex flex-col gap-3 shrink-0 z-10 sm:px-6">
+          <div className="overflow-x-auto scrollbar-hide pb-1">
+            <div className="mx-auto flex w-max items-center gap-4 sm:gap-5">
+              {ASPECT_RATIOS.map(ratio => {
+                const isOriginal = ratio.w === 0;
+                const shapeW = isOriginal ? 20 : Math.max(14, Math.min(32, (ratio.w / ratio.h) * 24));
+                const shapeH = isOriginal ? 26 : Math.max(14, Math.min(32, (ratio.h / ratio.w) * 24));
+                const isActive = activeRatio === ratio.label;
 
-              return (
-                <button 
-                  key={ratio.label} 
-                  onClick={() => handleRatioChange(ratio.label)}
-                  className="flex flex-col items-center gap-1 group transition-all duration-300"
-                >
-                  <div className="h-8 flex items-center justify-center">
-                    <div 
-                      className={`rounded-[3px] transition-all duration-300 ${
-                        isActive 
-                        ? "border-[1.5px] border-white shadow-[0_0_8px_rgba(255,255,255,0.3)]" 
-                        : "border-[1px] border-neutral-700 group-hover:border-neutral-500"
-                      }`}
-                      style={{ width: `${shapeW}px`, height: `${shapeH}px` }}
-                    />
-                  </div>
-                  <span className={`text-[9px] font-semibold transition-colors duration-300 ${
-                    isActive ? "text-white" : "text-neutral-600 group-hover:text-neutral-400"
-                  }`}>
-                    {ratio.label}
-                  </span>
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={ratio.label}
+                    onClick={() => handleRatioChange(ratio.label)}
+                    className="flex shrink-0 flex-col items-center gap-1 group transition-all duration-300"
+                  >
+                    <div className="h-8 flex items-center justify-center">
+                      <div
+                        className={`rounded-[3px] transition-all duration-300 ${
+                          isActive
+                          ? "border-[1.5px] border-white shadow-[0_0_8px_rgba(255,255,255,0.3)]"
+                          : "border-[1px] border-neutral-700 group-hover:border-neutral-500"
+                        }`}
+                        style={{ width: `${shapeW}px`, height: `${shapeH}px` }}
+                      />
+                    </div>
+                    <span className={`text-[9px] font-semibold transition-colors duration-300 ${
+                      isActive ? "text-white" : "text-neutral-600 group-hover:text-neutral-400"
+                    }`}>
+                      {ratio.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <StylePicker
@@ -286,27 +306,36 @@ export default function PreviewPage() {
             image={loadedImg}
             exifData={editedExif}
           />
+
+          <label
+            htmlFor="mobile-customize-sheet"
+            role="button"
+            tabIndex={0}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-neutral-800 bg-[#121212] text-sm font-semibold text-white transition-colors hover:border-neutral-600 lg:hidden"
+          >
+            <Settings2 className="w-4 h-4 text-neutral-400" /> Customize
+          </label>
         </div>
       </div>
 
       {/* Right Column (Customize Menu) */}
-      <div className="w-[340px] shrink-0 bg-[#0a0a0a] flex flex-col h-full z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
-        <div className="h-16 px-6 border-b border-[#262626] shrink-0 flex items-center justify-between">
+      <div className="hidden w-[340px] shrink-0 flex-col bg-[#0a0a0a] z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] lg:flex">
+        <div className="h-14 px-4 border-b border-[#262626] shrink-0 flex items-center justify-between sm:h-16 sm:px-6">
           <h2 className="font-semibold text-white flex items-center gap-2">
             <Settings2 className="w-4 h-4 text-neutral-400" /> Customize
           </h2>
           <button onClick={handleReset} className="text-sm text-neutral-400 hover:text-white transition-colors">Reset</button>
         </div>
-        
-        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-8 scrollbar-hide">
+
+        <div className="flex flex-col gap-7 p-4 scrollbar-hide sm:p-6 lg:flex-1 lg:overflow-y-auto lg:gap-8">
           {/* Visual Settings */}
           <section className="flex flex-col gap-6">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <ImageIcon className="w-4 h-4 text-neutral-400" /> Visual
             </h3>
-            
+
             <div className="flex flex-col gap-4">
-              <label className="flex items-center justify-between cursor-pointer group">
+              <label className="flex items-center justify-between gap-4 cursor-pointer group">
                 <span className="text-sm text-neutral-400 group-hover:text-neutral-300 transition-colors">Show Metadata (EXIF)</span>
                 <div className="relative inline-flex items-center">
                   <input type="checkbox" className="sr-only peer" checked={showMetadata} onChange={() => setShowMetadata(!showMetadata)} />
@@ -315,7 +344,7 @@ export default function PreviewPage() {
               </label>
 
               {FRAME_STYLE_CONFIGS[selectedStyle].hasLogo && (
-                <label className="flex items-center justify-between cursor-pointer group">
+                <label className="flex items-center justify-between gap-4 cursor-pointer group">
                   <span className="text-sm text-neutral-400 group-hover:text-neutral-300 transition-colors">Show Camera Logo</span>
                   <div className="relative inline-flex items-center">
                     <input type="checkbox" className="sr-only peer" checked={showLogo} onChange={() => setShowLogo(!showLogo)} />
@@ -332,11 +361,11 @@ export default function PreviewPage() {
                 <span className="text-neutral-500 font-medium">{borderWeight}x</span>
               </label>
               <div className="relative flex items-center h-4">
-                <input 
-                  type="range" 
-                  min="0.5" 
-                  max="2" 
-                  step="0.1" 
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2"
+                  step="0.1"
                   value={borderWeight}
                   onChange={(e) => setBorderWeight(parseFloat(e.target.value))}
                   className="w-full h-1.5 bg-neutral-800 border border-neutral-700 rounded-full appearance-none cursor-pointer outline-none focus:outline-none z-10 bg-no-repeat [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md"
@@ -350,18 +379,18 @@ export default function PreviewPage() {
 
             <div className="flex flex-col gap-3">
               <label className="text-sm text-neutral-400">Background</label>
-              <div className="flex gap-3 items-center">
+              <div className="flex flex-wrap gap-3 items-center">
                 {BACKGROUND_PRESETS.map(({ color, label }) => {
                   const isActive = backgroundColor === color;
                   return (
-                    <button 
+                    <button
                       key={color}
                       title={label}
                       onClick={() => setBackgroundColor(color)}
                       className={`w-8 h-8 rounded-full border-2 shadow-sm transition-all hover:scale-110 ${
                         isActive ? "border-white scale-110" : "border-neutral-800"
                       }`}
-                      style={{ backgroundColor: color }} 
+                      style={{ backgroundColor: color }}
                     />
                   );
                 })}
@@ -384,14 +413,14 @@ export default function PreviewPage() {
               </div>
             </div>
           </section>
-          
+
           <hr className="border-[#262626]" />
 
           <section className="flex flex-col gap-5">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <SlidersHorizontal className="w-4 h-4 text-neutral-400" /> Metadata Overrides
             </h3>
-            
+
             {(() => {
               const config = FRAME_STYLE_CONFIGS[selectedStyle];
               const fullWidthSlots = config.slots.filter(s => !s.half);
@@ -403,19 +432,17 @@ export default function PreviewPage() {
                     <ExifInput
                       key={slot.key}
                       label={slot.label}
-                      field={slot.key}
                       value={editedExif[slot.key]}
                       onChange={(v) => setEditedExif(prev => ({ ...prev, [slot.key]: v }))}
                       placeholder={slot.placeholder}
                     />
                   ))}
                   {halfWidthSlots.length > 0 && (
-                    <div className="grid grid-cols-2 gap-4 mt-1">
+                    <div className="grid grid-cols-1 gap-4 mt-1 sm:grid-cols-2 lg:grid-cols-2">
                       {halfWidthSlots.map(slot => (
                         <ExifInput
                           key={slot.key}
                           label={slot.label}
-                          field={slot.key}
                           value={editedExif[slot.key]}
                           onChange={(v) => setEditedExif(prev => ({ ...prev, [slot.key]: v }))}
                           placeholder={slot.placeholder}
@@ -434,8 +461,8 @@ export default function PreviewPage() {
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <Download className="w-4 h-4 text-neutral-400" /> Export Settings
             </h3>
-            
-            <div className="bg-[#121212] border border-neutral-800 rounded-2xl overflow-hidden">
+
+            <div className="bg-[#121212] border border-neutral-800 rounded-xl overflow-hidden">
               <div className="p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <div className="text-neutral-400">
@@ -471,11 +498,11 @@ export default function PreviewPage() {
                       <span className="text-xs text-neutral-500 font-medium">{exportQuality}%</span>
                     </div>
                     <div className="relative flex items-center h-4">
-                      <input 
-                        type="range" 
-                        min="85" 
-                        max="100" 
-                        step="1" 
+                      <input
+                        type="range"
+                        min="85"
+                        max="100"
+                        step="1"
                         value={exportQuality}
                         onChange={(e) => setExportQuality(parseInt(e.target.value))}
                         className="w-full h-1.5 bg-neutral-800 border border-neutral-700 rounded-full appearance-none cursor-pointer outline-none focus:outline-none z-10 bg-no-repeat [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md"
@@ -492,8 +519,8 @@ export default function PreviewPage() {
           </section>
 
         </div>
-        
-        <div className="px-6 py-4 border-t border-[#262626] shrink-0 bg-[#0a0a0a]">
+
+        <div className="px-4 py-4 border-t border-[#262626] shrink-0 bg-[#0a0a0a] sm:px-6">
           <button
             onClick={handleExport}
             disabled={isExporting || photos.length === 0 || !canvasReady}
@@ -507,6 +534,224 @@ export default function PreviewPage() {
           </button>
         </div>
       </div>
+
+      <div className="pointer-events-none invisible fixed inset-0 z-40 flex items-end bg-black/0 opacity-0 transition-[background-color,opacity,visibility] duration-300 ease-out peer-checked:pointer-events-auto peer-checked:visible peer-checked:bg-black/60 peer-checked:opacity-100 peer-checked:[&_.sheet-panel]:translate-y-0 lg:hidden" role="dialog" aria-modal="true" aria-labelledby="mobile-customize-title">
+          <label
+            htmlFor="mobile-customize-sheet"
+            aria-label="Close customize"
+            className="absolute inset-0 cursor-default"
+          />
+          <div className="sheet-panel relative flex max-h-[86dvh] w-full translate-y-full flex-col overflow-hidden rounded-t-lg border-t border-[#262626] bg-[#0a0a0a] shadow-[0_-12px_36px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out">
+            <div className="h-14 px-4 border-b border-[#262626] shrink-0 flex items-center justify-between">
+              <h2 id="mobile-customize-title" className="font-semibold text-white flex items-center gap-2">
+                <Settings2 className="w-4 h-4 text-neutral-400" /> Customize
+              </h2>
+              <div className="flex items-center gap-3">
+                <button onClick={handleReset} className="text-sm text-neutral-400 hover:text-white transition-colors">Reset</button>
+                <label
+                  htmlFor="mobile-customize-sheet"
+                  role="button"
+                  tabIndex={0}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-800 text-neutral-400 transition-colors hover:border-neutral-600 hover:text-white"
+                  aria-label="Close customize"
+                >
+                  <X className="w-4 h-4" />
+                </label>
+              </div>
+            </div>
+
+            <div className="flex flex-1 flex-col gap-7 overflow-y-auto p-4 scrollbar-hide">
+              <section className="flex flex-col gap-6">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-neutral-400" /> Visual
+                </h3>
+
+                <div className="flex flex-col gap-4">
+                  <label className="flex items-center justify-between gap-4 cursor-pointer group">
+                    <span className="text-sm text-neutral-400 group-hover:text-neutral-300 transition-colors">Show Metadata (EXIF)</span>
+                    <div className="relative inline-flex items-center">
+                      <input type="checkbox" className="sr-only peer" checked={showMetadata} onChange={() => setShowMetadata(!showMetadata)} />
+                      <div className="w-9 h-5 bg-[#262626] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-white peer-checked:after:bg-black"></div>
+                    </div>
+                  </label>
+
+                  {FRAME_STYLE_CONFIGS[selectedStyle].hasLogo && (
+                    <label className="flex items-center justify-between gap-4 cursor-pointer group">
+                      <span className="text-sm text-neutral-400 group-hover:text-neutral-300 transition-colors">Show Camera Logo</span>
+                      <div className="relative inline-flex items-center">
+                        <input type="checkbox" className="sr-only peer" checked={showLogo} onChange={() => setShowLogo(!showLogo)} />
+                        <div className="w-9 h-5 bg-[#262626] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-white peer-checked:after:bg-black"></div>
+                      </div>
+                    </label>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <label className="text-sm text-neutral-400 flex justify-between items-center">
+                    <span>Border Weight</span>
+                    <span className="text-neutral-500 font-medium">{borderWeight}x</span>
+                  </label>
+                  <div className="relative flex items-center h-4">
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2"
+                      step="0.1"
+                      value={borderWeight}
+                      onChange={(e) => setBorderWeight(parseFloat(e.target.value))}
+                      className="w-full h-1.5 bg-neutral-800 border border-neutral-700 rounded-full appearance-none cursor-pointer outline-none focus:outline-none z-10 bg-no-repeat [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md"
+                      style={{
+                        backgroundImage: 'linear-gradient(white, white)',
+                        backgroundSize: `${((borderWeight - 0.5) / 1.5) * 100}% 100%`
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <label className="text-sm text-neutral-400">Background</label>
+                  <div className="flex flex-wrap gap-3 items-center">
+                    {BACKGROUND_PRESETS.map(({ color, label }) => {
+                      const isActive = backgroundColor === color;
+                      return (
+                        <button
+                          key={color}
+                          title={label}
+                          onClick={() => setBackgroundColor(color)}
+                          className={`w-8 h-8 rounded-full border-2 shadow-sm transition-all hover:scale-110 ${
+                            isActive ? "border-white scale-110" : "border-neutral-800"
+                          }`}
+                          style={{ backgroundColor: color }}
+                        />
+                      );
+                    })}
+                    <div className="relative">
+                      <input
+                        type="color"
+                        value={backgroundColor}
+                        onChange={(e) => setBackgroundColor(e.target.value)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <div
+                        className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 flex items-center justify-center ${
+                          isCustomColor ? "border-white scale-110" : "border-neutral-800"
+                        }`}
+                        style={{ background: isCustomColor ? backgroundColor : "conic-gradient(from 0deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)" }}
+                      >
+                        {!isCustomColor && <div className="w-3 h-3 rounded-full bg-[#0a0a0a]" />}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <hr className="border-[#262626]" />
+
+              <section className="flex flex-col gap-5">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <SlidersHorizontal className="w-4 h-4 text-neutral-400" /> Metadata Overrides
+                </h3>
+
+                {(() => {
+                  const config = FRAME_STYLE_CONFIGS[selectedStyle];
+                  const fullWidthSlots = config.slots.filter(s => !s.half);
+                  const halfWidthSlots = config.slots.filter(s => s.half);
+
+                  return (
+                    <div className="flex flex-col gap-4">
+                      {fullWidthSlots.map(slot => (
+                        <ExifInput
+                          key={slot.key}
+                          label={slot.label}
+                          value={editedExif[slot.key]}
+                          onChange={(v) => setEditedExif(prev => ({ ...prev, [slot.key]: v }))}
+                          placeholder={slot.placeholder}
+                        />
+                      ))}
+                      {halfWidthSlots.length > 0 && (
+                        <div className="grid grid-cols-1 gap-4 mt-1 sm:grid-cols-2">
+                          {halfWidthSlots.map(slot => (
+                            <ExifInput
+                              key={slot.key}
+                              label={slot.label}
+                              value={editedExif[slot.key]}
+                              onChange={(v) => setEditedExif(prev => ({ ...prev, [slot.key]: v }))}
+                              placeholder={slot.placeholder}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </section>
+
+              <hr className="border-[#262626]" />
+
+              <section className="flex flex-col gap-5">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Download className="w-4 h-4 text-neutral-400" /> Export Settings
+                </h3>
+
+                <div className="bg-[#121212] border border-neutral-800 rounded-xl overflow-hidden">
+                  <div className="p-4 flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="text-neutral-400">
+                        <ImageIcon className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-white">Format</h4>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {(["jpeg", "png"] as const).map((fmt) => (
+                        <button
+                          key={fmt}
+                          onClick={() => setExportFormat(fmt)}
+                          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            exportFormat === fmt
+                              ? "bg-white text-black"
+                              : "bg-[#262626] text-neutral-400 hover:text-neutral-300"
+                          }`}
+                        >
+                          {fmt.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {exportFormat === "jpeg" && (
+                    <>
+                      <div className="border-t border-neutral-800" />
+                      <div className="p-4 flex flex-col gap-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-neutral-400">Quality</span>
+                          <span className="text-xs text-neutral-500 font-medium">{exportQuality}%</span>
+                        </div>
+                        <div className="relative flex items-center h-4">
+                          <input
+                            type="range"
+                            min="85"
+                            max="100"
+                            step="1"
+                            value={exportQuality}
+                            onChange={(e) => setExportQuality(parseInt(e.target.value))}
+                            className="w-full h-1.5 bg-neutral-800 border border-neutral-700 rounded-full appearance-none cursor-pointer outline-none focus:outline-none z-10 bg-no-repeat [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md"
+                            style={{
+                              backgroundImage: 'linear-gradient(white, white)',
+                              backgroundSize: `${((exportQuality - 85) / 15) * 100}% 100%`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </section>
+            </div>
+
+          </div>
+        </div>
 
       <Toast messages={toasts} onDismiss={dismissToast} />
     </div>

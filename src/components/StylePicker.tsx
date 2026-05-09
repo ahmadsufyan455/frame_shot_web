@@ -50,7 +50,7 @@ export default function StylePicker({
   exifData,
 }: StylePickerProps) {
   return (
-    <div className="flex gap-2 overflow-x-auto scrollbar-hide justify-center py-1">
+    <div className="flex gap-2 overflow-x-auto scrollbar-hide py-1 sm:justify-center">
       {FRAME_STYLES.map((style) => {
         const isActive = selectedStyle === style.id;
         return (
