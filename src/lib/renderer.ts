@@ -1,6 +1,8 @@
 import type { ExifData } from "./exif";
 import type { FrameStyle } from "@/lib/frame-styles";
 
+export type SourceImage = HTMLImageElement | ImageBitmap;
+
 const PAINTERS: Record<FrameStyle, () => Promise<{ paint: FramePainter }>> = {
   classic: () => import("./styles/classic"),
   "shot-on": () => import("./styles/shot-on"),
@@ -22,15 +24,15 @@ export interface ExportOptions {
 }
 
 export type FramePainter = (
-  canvas: HTMLCanvasElement,
-  image: HTMLImageElement,
+  canvas: HTMLCanvasElement | OffscreenCanvas,
+  image: SourceImage,
   exifData: ExifData,
   options?: PaintOptions
 ) => void;
 
 export async function renderFrame(
-  canvas: HTMLCanvasElement,
-  image: HTMLImageElement,
+  canvas: HTMLCanvasElement | OffscreenCanvas,
+  image: SourceImage,
   exifData: ExifData,
   style: FrameStyle,
   options?: PaintOptions
@@ -47,7 +49,6 @@ export async function exportFrameToBlob(
 ): Promise<Blob> {
   const exportCanvas = document.createElement("canvas");
   exportCanvas.width = image.naturalWidth;
-
   await renderFrame(exportCanvas, image, exifData, style, exportOptions.paintOptions);
 
   const mimeType = exportOptions.format === "jpeg" ? "image/jpeg" : "image/png";

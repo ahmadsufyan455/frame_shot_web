@@ -103,6 +103,7 @@ export default function PreviewPage() {
   const [exportQuality, setExportQuality] = useState(92);
   const [exportFormat, setExportFormat] = useState<"jpeg" | "png">("jpeg");
   const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState<{ done: number; total: number } | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [showMetadata, setShowMetadata] = useState(true);
   const [showLogo, setShowLogo] = useState(true);
@@ -185,6 +186,17 @@ export default function PreviewPage() {
     []
   );
 
+  const resolveExportBlob = useCallback(
+    async (photo: PhotoEntry): Promise<{ blob: Blob; isLowRes: boolean }> => {
+      if (photo.file) return { blob: photo.file, isLowRes: false };
+      const fullBlob = await getPhotoBlob(photo.id);
+      if (fullBlob) return { blob: fullBlob, isLowRes: false };
+      const res = await fetch(photo.objectUrl);
+      return { blob: await res.blob(), isLowRes: true };
+    },
+    []
+  );
+
   const handleExport = useCallback(async () => {
     if (isExporting || photos.length === 0 || !canvasReady) return;
     setIsExporting(true);
@@ -209,45 +221,122 @@ export default function PreviewPage() {
           addToast("success", "Image exported successfully");
         }
       } else {
-        const JSZip = (await import("jszip")).default;
-        const zip = new JSZip();
-        const usedNames = new Map<string, number>();
-        let succeeded = 0;
-        let failed = 0;
+        const canUseWorker = typeof Worker !== "undefined" && typeof OffscreenCanvas !== "undefined";
 
-        for (let i = 0; i < photos.length; i++) {
-          const photo = photos[i];
-          try {
-            const { url, revoke, isLowRes } = await resolveExportUrl(photo);
-            const img = await loadImage(url);
-            revoke();
-            const exif = perPhotoExif[i] ?? photo.exifData;
-            const blob = await exportFrameToBlob(img, exif, selectedStyle, exportOpts);
+        if (canUseWorker) {
+          const resolvedPhotos = await Promise.all(
+            photos.map(async (photo, i) => {
+              const { blob, isLowRes } = await resolveExportBlob(photo);
+              return { id: photo.id, blob, exifData: perPhotoExif[i] ?? photo.exifData, filename: photo.filename, isLowRes };
+            })
+          );
 
-            let baseName = photo.filename.replace(/\.[^.]+$/, "");
-            const count = usedNames.get(baseName) ?? 0;
-            usedNames.set(baseName, count + 1);
-            if (count > 0) baseName = `${baseName}-${count + 1}`;
+          await new Promise<void>((resolve) => {
+            const worker = new Worker(new URL("../../lib/export.worker.ts", import.meta.url));
+            const results = new Map<string, { buffer: ArrayBuffer; filename: string; isLowRes: boolean }>();
+            let failed = 0;
 
-            zip.file(`frameshot-${baseName}.${extension}`, blob);
-            succeeded++;
-            if (isLowRes && !warnedLowRes) warnedLowRes = true;
-          } catch {
-            failed++;
-          }
-        }
+            worker.postMessage({
+              photos: resolvedPhotos,
+              style: selectedStyle,
+              format: exportFormat,
+              quality: exportQuality,
+              paintOptions: currentPaintOptions,
+            });
 
-        if (succeeded === 0) {
-          addToast("error", "Export failed — could not process any photos");
+            worker.onmessage = async (e) => {
+              const msg = e.data;
+              if (msg.type === "progress") {
+                setExportProgress({ done: msg.done, total: msg.total });
+              } else if (msg.type === "result") {
+                results.set(msg.id, { buffer: msg.buffer, filename: msg.filename, isLowRes: msg.isLowRes });
+              } else if (msg.type === "error") {
+                failed++;
+              } else if (msg.type === "done") {
+                worker.terminate();
+                setExportProgress(null);
+
+                if (results.size === 0) {
+                  addToast("error", "Export failed — could not process any photos");
+                } else {
+                  const JSZip = (await import("jszip")).default;
+                  const zip = new JSZip();
+                  const usedNames = new Map<string, number>();
+                  let anyLowRes = false;
+
+                  for (const [, { buffer, filename, isLowRes }] of results) {
+                    let baseName = filename.replace(/\.[^.]+$/, "");
+                    const count = usedNames.get(baseName) ?? 0;
+                    usedNames.set(baseName, count + 1);
+                    if (count > 0) baseName = `${baseName}-${count + 1}`;
+                    zip.file(`frameshot-${baseName}.${extension}`, buffer);
+                    if (isLowRes) anyLowRes = true;
+                  }
+
+                  const zipBlob = await zip.generateAsync({ type: "blob" });
+                  downloadBlob(zipBlob, "frameshot-export.zip");
+
+                  if (failed > 0) {
+                    addToast("success", `Exported ${results.size}/${photos.length} photos (${failed} failed)`);
+                  } else if (anyLowRes) {
+                    addToast("success", "Exported — some photos at preview quality due to storage limits");
+                  } else {
+                    addToast("success", `All ${results.size} photos exported successfully`);
+                  }
+                }
+                resolve();
+              }
+            };
+
+            worker.onerror = () => {
+              worker.terminate();
+              setExportProgress(null);
+              addToast("error", "Export failed — please try again");
+              resolve();
+            };
+          });
         } else {
-          const zipBlob = await zip.generateAsync({ type: "blob" });
-          downloadBlob(zipBlob, `frameshot-export.zip`);
-          if (failed > 0) {
-            addToast("success", `Exported ${succeeded}/${photos.length} photos (${failed} failed)`);
-          } else if (warnedLowRes) {
-            addToast("success", `Exported — some photos at preview quality due to storage limits`);
+          // Fallback: main-thread batch (older Safari)
+          const JSZip = (await import("jszip")).default;
+          const zip = new JSZip();
+          const usedNames = new Map<string, number>();
+          let succeeded = 0;
+          let failed = 0;
+
+          for (let i = 0; i < photos.length; i++) {
+            const photo = photos[i];
+            try {
+              const { url, revoke, isLowRes } = await resolveExportUrl(photo);
+              const img = await loadImage(url);
+              revoke();
+              const exif = perPhotoExif[i] ?? photo.exifData;
+              const blob = await exportFrameToBlob(img, exif, selectedStyle, exportOpts);
+
+              let baseName = photo.filename.replace(/\.[^.]+$/, "");
+              const count = usedNames.get(baseName) ?? 0;
+              usedNames.set(baseName, count + 1);
+              if (count > 0) baseName = `${baseName}-${count + 1}`;
+
+              zip.file(`frameshot-${baseName}.${extension}`, blob);
+              succeeded++;
+              if (isLowRes && !warnedLowRes) warnedLowRes = true;
+            } catch {
+              failed++;
+            }
+          }
+
+          if (succeeded === 0) {
+            addToast("error", "Export failed — could not process any photos");
           } else {
-            addToast("success", `All ${succeeded} photos exported successfully`);
+            const zipBlob = await zip.generateAsync({ type: "blob" });
+            downloadBlob(zipBlob, "frameshot-export.zip");
+            if (failed > 0) {
+              addToast("success", `Exported ${succeeded}/${photos.length} photos (${failed} failed)`);
+            } else if (warnedLowRes) {
+              addToast("success", "Exported — some photos at preview quality due to storage limits");
+            } else {
+              addToast("success", `All ${succeeded} photos exported successfully`);
+            }
           }
         }
       }
@@ -255,8 +344,9 @@ export default function PreviewPage() {
       addToast("error", "Export failed — please try again");
     } finally {
       setIsExporting(false);
+      setExportProgress(null);
     }
-  }, [isExporting, photos, perPhotoExif, selectedStyle, exportFormat, exportQuality, canvasReady, currentPaintOptions, addToast, resolveExportUrl]);
+  }, [isExporting, photos, perPhotoExif, selectedStyle, exportFormat, exportQuality, canvasReady, currentPaintOptions, addToast, resolveExportUrl, resolveExportBlob]);
 
   const FADE_DURATION_MS = 200;
   const handleRatioChange = useCallback((label: string) => {
@@ -329,7 +419,11 @@ export default function PreviewPage() {
             ) : (
               <Download className="w-4 h-4" />
             )}
-            <span>Export</span>
+            <span>
+              {isExporting && exportProgress
+                ? `${exportProgress.done}/${exportProgress.total}`
+                : "Export"}
+            </span>
           </button>
         </header>
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#121212] p-4 relative sm:p-6 lg:p-8">
@@ -604,7 +698,7 @@ export default function PreviewPage() {
             className="w-full bg-white text-black py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-neutral-200 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
           >
             {isExporting ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Exporting...</>
+              <><Loader2 className="w-4 h-4 animate-spin" /> {exportProgress ? `Exporting ${exportProgress.done}/${exportProgress.total}...` : "Exporting..."}</>
             ) : (
               <><Download className="w-4 h-4" /> {photos.length > 1 ? `Export All (${photos.length})` : "Export Image"}</>
             )}

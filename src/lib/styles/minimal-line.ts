@@ -27,10 +27,13 @@
  *  - Pill badge: centered at bottom of photo, overlapping edge
  */
 
-import type { FramePainter } from "../renderer";
+import type { FramePainter, SourceImage } from "../renderer";
+
+const iw = (img: SourceImage) => "naturalWidth" in img ? img.naturalWidth : img.width;
+const ih = (img: SourceImage) => "naturalHeight" in img ? img.naturalHeight : img.height;
 
 export const paint: FramePainter = (canvas, image, exifData, options) => {
-  const ctx = canvas.getContext("2d");
+  const ctx = (canvas as unknown as HTMLCanvasElement).getContext("2d");
   if (!ctx) return;
 
   const width = canvas.width;
@@ -41,7 +44,7 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
   const outerPadding = Math.round(width * 0.054 * weight);
 
   const imgAreaW = width - outerPadding * 2;
-  const imgAspect = options?.aspectRatio ?? image.naturalWidth / image.naturalHeight;
+  const imgAspect = options?.aspectRatio ?? iw(image) / ih(image);
   const imgAreaH = Math.round(imgAreaW / imgAspect);
 
   const totalHeight = outerPadding + imgAreaH + outerPadding;
@@ -162,27 +165,27 @@ function drawRoundedRect(
 
 function drawImageCover(
   ctx: CanvasRenderingContext2D,
-  image: HTMLImageElement,
+  image: SourceImage,
   dx: number,
   dy: number,
   dw: number,
   dh: number
 ) {
-  const imgAspect = image.naturalWidth / image.naturalHeight;
+  const imgAspect = iw(image) / ih(image);
   const areaAspect = dw / dh;
 
   let sx = 0,
     sy = 0,
-    sw = image.naturalWidth,
-    sh = image.naturalHeight;
+    sw = iw(image),
+    sh = ih(image);
 
   if (imgAspect > areaAspect) {
-    sw = image.naturalHeight * areaAspect;
-    sx = (image.naturalWidth - sw) / 2;
+    sw = ih(image) * areaAspect;
+    sx = (iw(image) - sw) / 2;
   } else {
-    sh = image.naturalWidth / areaAspect;
-    sy = (image.naturalHeight - sh) / 2;
+    sh = iw(image) / areaAspect;
+    sy = (ih(image) - sh) / 2;
   }
 
-  ctx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
+  ctx.drawImage(image as CanvasImageSource, sx, sy, sw, sh, dx, dy, dw, dh);
 }

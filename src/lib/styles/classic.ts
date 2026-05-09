@@ -26,8 +26,13 @@
 
 import type { FramePainter } from "../renderer";
 
+import type { SourceImage } from "../renderer";
+
+const iw = (img: SourceImage) => "naturalWidth" in img ? img.naturalWidth : img.width;
+const ih = (img: SourceImage) => "naturalHeight" in img ? img.naturalHeight : img.height;
+
 export const paint: FramePainter = (canvas, image, exifData, options) => {
-  const ctx = canvas.getContext("2d");
+  const ctx = (canvas as unknown as HTMLCanvasElement).getContext("2d");
   if (!ctx) return;
 
   const width = canvas.width;
@@ -62,7 +67,7 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
   }
 
   const imgAreaW = width - padding * 2;
-  const imgAspect = options?.aspectRatio ?? image.naturalWidth / image.naturalHeight;
+  const imgAspect = options?.aspectRatio ?? iw(image) / ih(image);
   const imgAreaH = Math.round(imgAreaW / imgAspect);
 
   const barGap = Math.round(padding * 0.3);
@@ -209,31 +214,29 @@ function drawRoundedRect(
 // --- Helper: Draw image with "cover" behavior ---
 function drawImageCover(
   ctx: CanvasRenderingContext2D,
-  image: HTMLImageElement,
+  image: SourceImage,
   dx: number,
   dy: number,
   dw: number,
   dh: number
 ) {
-  const imgAspect = image.naturalWidth / image.naturalHeight;
+  const imgAspect = iw(image) / ih(image);
   const areaAspect = dw / dh;
 
   let sx = 0,
     sy = 0,
-    sw = image.naturalWidth,
-    sh = image.naturalHeight;
+    sw = iw(image),
+    sh = ih(image);
 
   if (imgAspect > areaAspect) {
-    // Image is wider — crop sides
-    sw = image.naturalHeight * areaAspect;
-    sx = (image.naturalWidth - sw) / 2;
+    sw = ih(image) * areaAspect;
+    sx = (iw(image) - sw) / 2;
   } else {
-    // Image is taller — crop top/bottom
-    sh = image.naturalWidth / areaAspect;
-    sy = (image.naturalHeight - sh) / 2;
+    sh = iw(image) / areaAspect;
+    sy = (ih(image) - sh) / 2;
   }
 
-  ctx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
+  ctx.drawImage(image as CanvasImageSource, sx, sy, sw, sh, dx, dy, dw, dh);
 }
 
 // Relative luminance (0=black, 1=white) for contrast-adaptive text
