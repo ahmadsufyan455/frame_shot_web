@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import UploadZone from "@/components/UploadZone";
 import appIcon from "./exif_frame_shot.png";
 
@@ -27,6 +28,14 @@ export default function HomePage() {
         <div className="w-full flex justify-center">
           <UploadZone />
         </div>
+
+        <p className="max-w-[560px] text-center text-[13px] leading-6 text-neutral-500">
+          Your photos are processed locally in your browser and are not uploaded
+          to our servers. GPS metadata is ignored.{" "}
+          <Link href="/privacy" className="text-neutral-300 underline underline-offset-4 transition-colors hover:text-white">
+            Read privacy notes
+          </Link>
+        </p>
 
       </div>
     </main>
