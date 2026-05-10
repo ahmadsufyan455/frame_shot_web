@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://getframeshot.com"),
   title: "FrameShot — Your shot. Your gear. Your story.",
   description:
     "Add beautiful EXIF frames to your photos in seconds. Upload a photo, pick a style, download the result. Free. No sign-up. Processed entirely in your browser.",
@@ -28,13 +29,22 @@ export const metadata: Metadata = {
     description:
       "Automatically read EXIF metadata from your photo and render it as a beautiful, shareable frame. Free. No sign-up. 100% private.",
     type: "website",
-    url: "https://frameshot.app",
+    url: "https://getframeshot.com",
+    images: [
+      {
+        url: "/opengraph-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "FrameShot app preview",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "FrameShot — EXIF Frame Generator",
     description:
       "Add beautiful EXIF frames to your photos. Free. No sign-up. Processed entirely in your browser.",
+    images: ["/opengraph-image.jpg"],
   },
 };
 
