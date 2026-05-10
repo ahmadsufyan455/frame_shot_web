@@ -1,5 +1,6 @@
+import Image from "next/image";
 import UploadZone from "@/components/UploadZone";
-import { Camera } from "lucide-react";
+import appIcon from "./exif_frame_shot.png";
 
 export default function HomePage() {
   return (
@@ -7,9 +8,14 @@ export default function HomePage() {
       <div className="flex flex-col gap-16 items-center justify-center w-full max-w-[1123px]">
         
         <div className="flex flex-col items-center justify-center relative">
-          <div className="bg-white drop-shadow-[0px_0px_20px_rgba(255,255,255,0.1)] flex items-center justify-center rounded-[24px] size-[80px] mb-6">
-            <Camera className="size-[36px] text-black" strokeWidth={1.5} />
-          </div>
+          <Image
+            src={appIcon}
+            alt="FrameShot"
+            width={80}
+            height={80}
+            priority
+            className="mb-6 size-[80px] rounded-[24px] drop-shadow-[0px_0px_20px_rgba(255,255,255,0.1)]"
+          />
           <h1 className="font-bold text-[30px] leading-[36px] text-white tracking-[-0.35px] whitespace-nowrap mb-2">
             FrameShot
           </h1>
