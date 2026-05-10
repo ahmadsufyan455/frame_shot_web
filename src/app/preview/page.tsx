@@ -737,13 +737,13 @@ export default function PreviewPage() {
         </div>
       </div>
 
-      <div className="pointer-events-none invisible fixed inset-0 z-40 flex items-end bg-black/0 opacity-0 transition-[background-color,opacity,visibility] duration-300 ease-out peer-checked:pointer-events-auto peer-checked:visible peer-checked:bg-black/60 peer-checked:opacity-100 peer-checked:[&_.sheet-panel]:translate-y-0 lg:hidden" role="dialog" aria-modal="true" aria-labelledby="mobile-customize-title">
+      <div className="pointer-events-none invisible fixed inset-0 z-40 flex items-end bg-black/0 opacity-0 transition-[background-color,opacity,visibility] duration-300 ease-out peer-checked:pointer-events-auto peer-checked:visible peer-checked:bg-black/35 peer-checked:opacity-100 peer-checked:[&_.sheet-panel]:translate-y-0 lg:hidden" role="dialog" aria-modal="true" aria-labelledby="mobile-customize-title">
           <label
             htmlFor="mobile-customize-sheet"
             aria-label="Close customize"
             className="absolute inset-0 cursor-default"
           />
-          <div className="sheet-panel relative flex max-h-[86dvh] w-full translate-y-full flex-col overflow-hidden rounded-t-lg border-t border-[#262626] bg-[#0a0a0a] shadow-[0_-12px_36px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out">
+          <div className="sheet-panel relative flex max-h-[50dvh] w-full translate-y-full flex-col overflow-hidden rounded-t-lg border-t border-[#262626] bg-[#0a0a0a] shadow-[0_-12px_36px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out">
             <div className="h-14 px-4 border-b border-[#262626] shrink-0 flex items-center justify-between">
               <h2 id="mobile-customize-title" className="font-semibold text-white flex items-center gap-2">
                 <Settings2 className="w-4 h-4 text-neutral-400" /> Customize
@@ -762,7 +762,7 @@ export default function PreviewPage() {
               </div>
             </div>
 
-            <div className="flex flex-1 flex-col gap-7 overflow-y-auto p-4 scrollbar-hide">
+            <div className="flex min-h-0 flex-1 flex-col gap-7 overflow-y-auto p-4 scrollbar-hide">
               <section className="flex flex-col gap-6">
                 <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                   <ImageIcon className="w-4 h-4 text-neutral-400" /> Visual
