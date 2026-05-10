@@ -66,7 +66,8 @@ export default function UploadZone() {
         {...getRootProps()}
         className={`
         border-2 border-dashed border-[#404040] rounded-[32px] 
-        w-full max-w-[672px] h-[280px]
+        w-full max-w-[672px] h-[clamp(6rem,34dvh,17.5rem)] max-h-full
+        px-6 py-5 sm:px-10 sm:py-8
         flex flex-col items-center justify-center
         transition-colors duration-200
         ${!isUploading && "cursor-pointer"}
@@ -85,15 +86,15 @@ export default function UploadZone() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center">
-            <div className="bg-[#262626] rounded-full size-[64px] flex items-center justify-center mb-[20px]">
-              <ImagePlus className="size-[28px] text-white" strokeWidth={1.5} />
+            <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-[#262626] sm:mb-5 sm:size-16">
+              <ImagePlus className="size-6 text-white sm:size-7" strokeWidth={1.5} />
             </div>
 
-            <p className="font-semibold text-[18px] leading-[28px] text-white tracking-[-0.4395px] text-center">
+            <p className="text-center text-[16px] font-semibold leading-6 tracking-[-0.25px] text-white sm:text-[18px] sm:leading-7 sm:tracking-[-0.4395px]">
               Drag & drop photos
             </p>
 
-            <p className="font-medium text-[14px] leading-[20px] text-[#737373] tracking-[-0.15px] text-center mt-1">
+            <p className="mt-0.5 text-center text-[13px] font-medium leading-5 tracking-[-0.15px] text-[#737373] sm:mt-1 sm:text-[14px]">
               or click to browse files
             </p>
           </div>
