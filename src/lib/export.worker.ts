@@ -3,7 +3,7 @@ export {};
 
 import type { ExifData } from "./exif";
 import type { FrameStyle } from "./frame-styles";
-import type { PaintOptions } from "./renderer";
+import type { FramePainter, PaintOptions } from "./renderer";
 
 export type WorkerRequest = {
   photos: Array<{
@@ -25,7 +25,7 @@ export type WorkerEvent =
   | { type: "error"; id: string; filename: string }
   | { type: "done" };
 
-const PAINTERS: Record<FrameStyle, () => Promise<{ paint: Function }>> = {
+const PAINTERS: Record<FrameStyle, () => Promise<{ paint: FramePainter }>> = {
   classic: () => import("./styles/classic"),
   "shot-on": () => import("./styles/shot-on"),
   "minimal-line": () => import("./styles/minimal-line"),

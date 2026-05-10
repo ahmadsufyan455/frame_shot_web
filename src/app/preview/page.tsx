@@ -55,6 +55,8 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
 const DESKTOP_PREVIEW_CANVAS_WIDTH = 1080;
 const COMPACT_PREVIEW_CANVAS_WIDTH = 720;
 const COMPACT_PREVIEW_QUERY = "(max-width: 1023px)";
+const TEXT_SCALE_MIN = 0.5;
+const TEXT_SCALE_MAX = 2;
 
 function getPreviewCanvasWidth() {
   if (typeof window === "undefined") return DESKTOP_PREVIEW_CANVAS_WIDTH;
@@ -100,6 +102,7 @@ export default function PreviewPage() {
   const activePhoto = photos[activeIndex];
 
   const [borderWeight, setBorderWeight] = useState(1);
+  const [metadataTextScale, setMetadataTextScale] = useState(1);
   const [exportQuality, setExportQuality] = useState(92);
   const [exportFormat, setExportFormat] = useState<"jpeg" | "png">("jpeg");
   const [isExporting, setIsExporting] = useState(false);
@@ -134,6 +137,7 @@ export default function PreviewPage() {
     setShowMetadata(true);
     setShowLogo(true);
     setBorderWeight(1);
+    setMetadataTextScale(1);
     setBackgroundColor("#ffffff");
     if (activePhoto) {
       setPerPhotoExif(prev => ({ ...prev, [activeIndex]: activePhoto.exifData }));
@@ -150,8 +154,9 @@ export default function PreviewPage() {
     showMetadata,
     showLogo,
     borderWeight,
+    metadataTextScale,
     backgroundColor,
-  }), [activeAspectRatio, showMetadata, showLogo, borderWeight, backgroundColor]);
+  }), [activeAspectRatio, showMetadata, showLogo, borderWeight, metadataTextScale, backgroundColor]);
   const debouncedEditedExif = useDebouncedValue(editedExif, 120);
   const debouncedPaintOptions = useDebouncedValue(currentPaintOptions, 120);
   const thumbnailExif = useMemo(() => activePhoto?.exifData ?? {}, [activePhoto]);
@@ -551,6 +556,29 @@ export default function PreviewPage() {
               </div>
             </div>
 
+            {/* Metadata Text Size Slider */}
+            <div className="flex flex-col gap-3">
+              <label className="text-sm text-neutral-400 flex justify-between items-center">
+                <span>EXIF Text Size</span>
+                <span className="text-neutral-500 font-medium">{metadataTextScale}x</span>
+              </label>
+              <div className="relative flex items-center h-4">
+                <input
+                  type="range"
+                  min={TEXT_SCALE_MIN}
+                  max={TEXT_SCALE_MAX}
+                  step="0.1"
+                  value={metadataTextScale}
+                  onChange={(e) => setMetadataTextScale(parseFloat(e.target.value))}
+                  className="w-full h-1.5 bg-neutral-800 border border-neutral-700 rounded-full appearance-none cursor-pointer outline-none focus:outline-none z-10 bg-no-repeat [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md"
+                  style={{
+                    backgroundImage: 'linear-gradient(white, white)',
+                    backgroundSize: `${((metadataTextScale - TEXT_SCALE_MIN) / (TEXT_SCALE_MAX - TEXT_SCALE_MIN)) * 100}% 100%`
+                  }}
+                />
+              </div>
+            </div>
+
             <div className="flex flex-col gap-3">
               <label className="text-sm text-neutral-400">Background</label>
               <div className="flex flex-wrap gap-3 items-center">
@@ -777,6 +805,28 @@ export default function PreviewPage() {
                       style={{
                         backgroundImage: 'linear-gradient(white, white)',
                         backgroundSize: `${((borderWeight - 0.5) / 1.5) * 100}% 100%`
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <label className="text-sm text-neutral-400 flex justify-between items-center">
+                    <span>EXIF Text Size</span>
+                    <span className="text-neutral-500 font-medium">{metadataTextScale}x</span>
+                  </label>
+                  <div className="relative flex items-center h-4">
+                    <input
+                      type="range"
+                      min={TEXT_SCALE_MIN}
+                      max={TEXT_SCALE_MAX}
+                      step="0.1"
+                      value={metadataTextScale}
+                      onChange={(e) => setMetadataTextScale(parseFloat(e.target.value))}
+                      className="w-full h-1.5 bg-neutral-800 border border-neutral-700 rounded-full appearance-none cursor-pointer outline-none focus:outline-none z-10 bg-no-repeat [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md"
+                      style={{
+                        backgroundImage: 'linear-gradient(white, white)',
+                        backgroundSize: `${((metadataTextScale - TEXT_SCALE_MIN) / (TEXT_SCALE_MAX - TEXT_SCALE_MIN)) * 100}% 100%`
                       }}
                     />
                   </div>

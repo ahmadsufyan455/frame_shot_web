@@ -15,6 +15,7 @@ export interface PaintOptions {
   showLogo?: boolean;
   borderWeight?: number;
   backgroundColor?: string;
+  metadataTextScale?: number;
 }
 
 export interface ExportOptions {

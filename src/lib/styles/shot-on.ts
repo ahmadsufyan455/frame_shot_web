@@ -39,6 +39,7 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
   const showLogo = options?.showLogo ?? true;
   const weight = options?.borderWeight ?? 1;
   const bgColor = options?.backgroundColor ?? "#ffffff";
+  const textScale = clamp(options?.metadataTextScale ?? 1, 0.5, 2);
 
   const basePadding = Math.round(width * 0.036);
   const padding = Math.round(basePadding * weight);
@@ -49,8 +50,8 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
   const iconSize = Math.round(width * 0.08);
   const iconTopGap = Math.round(width * 0.035);
   const textGapFromIcon = Math.round(width * 0.02);
-  const modelFontSize = Math.round(width * 0.035);
-  const lensFontSize = Math.round(width * 0.026);
+  const modelFontSize = Math.round(width * 0.035 * textScale);
+  const lensFontSize = Math.round(width * 0.026 * textScale);
   const lensGap = Math.round(modelFontSize * 0.6);
   const bottomPadding = Math.round(padding * 0.8);
 
@@ -140,6 +141,10 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
     ctx.fillText(exifData.lensModel!, centerX, cursorY);
   }
 };
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
 
 // --- Helper: Draw image with "cover" behavior ---
 function drawRoundedRect(

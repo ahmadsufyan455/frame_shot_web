@@ -40,6 +40,7 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
   const showMetadata = options?.showMetadata ?? true;
   const weight = options?.borderWeight ?? 1;
   const bgColor = options?.backgroundColor ?? "#ffffff";
+  const textScale = clamp(options?.metadataTextScale ?? 1, 0.5, 2);
 
   const outerPadding = Math.round(width * 0.054 * weight);
 
@@ -90,7 +91,7 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
 
   const pillText = parts.join(" \u2022 ").toUpperCase();
 
-  const fontSize = Math.round(width * 0.016);
+  const fontSize = Math.round(width * 0.016 * textScale);
   const letterSpacing = fontSize * 0.13;
   const pillPaddingX = Math.round(width * 0.027);
   const pillPaddingY = Math.round(fontSize * 0.6);
@@ -126,6 +127,10 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
   ctx.font = `600 ${fontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
   drawLetterSpacedText(ctx, pillText, width / 2, pillY + pillH / 2, letterSpacing);
 };
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
 
 function drawLetterSpacedText(
   ctx: CanvasRenderingContext2D,

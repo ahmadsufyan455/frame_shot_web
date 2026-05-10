@@ -40,14 +40,17 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
   const showLogo = options?.showLogo ?? true;
   const weight = options?.borderWeight ?? 1;
   const bgColor = options?.backgroundColor ?? "#ffffff";
+  const textScale = clamp(options?.metadataTextScale ?? 1, 0.5, 2);
 
   const basePadding = Math.round(width * 0.0365);
   const padding = Math.round(basePadding * weight);
   const imageRadius = Math.round(width * 0.018);
   const iconSize = Math.round(width * 0.097);
   const gapIconText = Math.round(width * 0.0365);
-  const modelFontSize = Math.round(width * 0.0365);
-  const lensFontSize = Math.round(width * 0.0304);
+  const modelFontSize = Math.round(width * 0.0365 * textScale);
+  const lensFontSize = Math.round(width * 0.0304 * textScale);
+  const settingsFontSize = Math.round(width * 0.0334 * textScale);
+  const rowGap = Math.round(modelFontSize * 0.3);
 
   const leftLines: Array<{ text: string; style: "model" | "lens" }> = [];
   if (exifData.model) leftLines.push({ text: exifData.model, style: "model" });
@@ -66,9 +69,15 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
   if (!showMetadata || !hasAnyContent) {
     bottomBarHeight = Math.round(padding * 0.5);
   } else if (rowsCount === 2) {
-    bottomBarHeight = Math.round(width * 0.17);
+    bottomBarHeight = Math.max(
+      Math.round(width * 0.17),
+      modelFontSize + Math.max(lensFontSize, settingsFontSize) + rowGap + Math.round(basePadding * 1.2)
+    );
   } else {
-    bottomBarHeight = Math.round(width * 0.12);
+    bottomBarHeight = Math.max(
+      Math.round(width * 0.12),
+      Math.max(modelFontSize, settingsFontSize) + Math.round(basePadding * 1.5)
+    );
   }
 
   const imgAreaW = width - padding * 2;
@@ -129,7 +138,6 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
   }
 
   const textRightX = barContentX + barContentW;
-  const settingsFontSize = Math.round(width * 0.0334);
 
   const drawTextItem = (
     item: { text: string; style: string },
@@ -154,7 +162,7 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
 
   if (rowsCount === 2) {
     const topY = barCenterY - Math.round(modelFontSize * 0.15);
-    const bottomY = topY + Math.round(modelFontSize * 1.3);
+    const bottomY = topY + modelFontSize + rowGap;
 
     if (leftLines[0]) drawTextItem(leftLines[0], textLeftX, topY, "left");
     if (leftLines[1]) drawTextItem(leftLines[1], textLeftX, bottomY, "left");
@@ -167,6 +175,10 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
     if (rightLines[0]) drawTextItem(rightLines[0], textRightX, singleY, "right");
   }
 };
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
 
 // --- Helper: Draw rounded rectangle path ---
 function drawRoundedRect(
