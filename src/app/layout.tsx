@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -60,7 +61,12 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         {children}
-        {/* TODO: Add Plausible analytics script here */}
+        <Script
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token":"c7c1c4f67bd54213935f0a131fa69772"}'
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
