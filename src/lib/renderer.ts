@@ -7,6 +7,7 @@ const PAINTERS: Record<FrameStyle, () => Promise<{ paint: FramePainter }>> = {
   classic: () => import("./styles/classic"),
   "shot-on": () => import("./styles/shot-on"),
   "minimal-line": () => import("./styles/minimal-line"),
+  "fine-art": () => import("./styles/fine-art"),
 };
 
 export interface PaintOptions {
