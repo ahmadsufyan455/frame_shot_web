@@ -1,6 +1,6 @@
 import type { ExifData } from "./exif";
 
-export type FrameStyle = "classic" | "shot-on" | "minimal-line" | "fine-art";
+export type FrameStyle = "classic" | "shot-on" | "minimal-line" | "fine-art" | "editorial";
 
 export interface ExifSlot {
   key: keyof ExifData;
@@ -59,6 +59,18 @@ export const FRAME_STYLE_CONFIGS: Record<FrameStyle, FrameStyleConfig> = {
     slots: [
       { key: "model", label: "Camera", placeholder: "e.g. ILCE-7CM2" },
       { key: "dateTime", label: "Capture Date", placeholder: "e.g. 2026-05-03" },
+    ],
+  },
+  editorial: {
+    id: "editorial",
+    label: "Editorial",
+    description: "Magazine-style bottom caption with a bold serif camera brand and exposure details",
+    slots: [
+      { key: "make", label: "Brand", placeholder: "e.g. Sony" },
+      { key: "focalLength", label: "Focal Length", placeholder: "e.g. 35mm", half: true },
+      { key: "aperture", label: "Aperture", placeholder: "e.g. f/1.8", half: true },
+      { key: "shutterSpeed", label: "Shutter", placeholder: "e.g. 1/500s", half: true },
+      { key: "iso", label: "ISO", placeholder: "e.g. ISO 800", half: true },
     ],
   },
 };
