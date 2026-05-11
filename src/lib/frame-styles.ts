@@ -1,6 +1,12 @@
 import type { ExifData } from "./exif";
 
-export type FrameStyle = "classic" | "shot-on" | "minimal-line" | "fine-art" | "editorial";
+export type FrameStyle =
+  | "classic"
+  | "shot-on"
+  | "minimal-line"
+  | "fine-art"
+  | "editorial"
+  | "vintage";
 
 export interface ExifSlot {
   key: keyof ExifData;
@@ -71,6 +77,16 @@ export const FRAME_STYLE_CONFIGS: Record<FrameStyle, FrameStyleConfig> = {
       { key: "aperture", label: "Aperture", placeholder: "e.g. f/1.8", half: true },
       { key: "shutterSpeed", label: "Shutter", placeholder: "e.g. 1/500s", half: true },
       { key: "iso", label: "ISO", placeholder: "e.g. ISO 800", half: true },
+    ],
+  },
+  vintage: {
+    id: "vintage",
+    label: "Vintage",
+    description: "Postcard-inspired frame with tape, stamp, texture, and handwritten notes",
+    slots: [
+      { key: "make", label: "Make", placeholder: "e.g. Sony", half: true },
+      { key: "model", label: "Camera", placeholder: "e.g. ILCE-7CM2", half: true },
+      { key: "dateTime", label: "Capture Date", placeholder: "e.g. 2026-05-03" },
     ],
   },
 };
