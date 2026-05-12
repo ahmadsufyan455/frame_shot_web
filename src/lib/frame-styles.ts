@@ -84,8 +84,7 @@ export const FRAME_STYLE_CONFIGS: Record<FrameStyle, FrameStyleConfig> = {
     label: "Vintage",
     description: "Postcard-inspired frame with tape, stamp, texture, and handwritten notes",
     slots: [
-      { key: "make", label: "Make", placeholder: "e.g. Sony", half: true },
-      { key: "model", label: "Camera", placeholder: "e.g. ILCE-7CM2", half: true },
+      { key: "model", label: "Camera", placeholder: "e.g. ILCE-7CM2" },
       { key: "dateTime", label: "Capture Date", placeholder: "e.g. 2026-05-03" },
     ],
   },

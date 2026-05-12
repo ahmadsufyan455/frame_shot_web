@@ -196,14 +196,14 @@ function fitStampDateFontSize(
 
 function drawHandwrittenMetadata(
   ctx: CanvasRenderingContext2D,
-  exifData: { make?: string; model?: string; dateTime?: string },
+  exifData: { model?: string; dateTime?: string },
   width: number,
   x: number,
   paperBottom: number,
   totalHeight: number,
   textScale: number
 ) {
-  const camera = getCameraLine(exifData.make, exifData.model);
+  const camera = exifData.model?.trim();
   const month = formatMonthYear(exifData.dateTime);
   const lines = [
     camera ? `Captured with ${camera}` : "",
@@ -247,12 +247,6 @@ function drawPaperTexture(ctx: CanvasRenderingContext2D, width: number, height: 
     }
   }
   ctx.restore();
-}
-
-function getCameraLine(make?: string, model?: string) {
-  const cleanMake = make?.trim();
-  const cleanModel = model?.trim();
-  return [cleanMake?.toLowerCase(), cleanModel].filter(Boolean).join(" ");
 }
 
 function formatStampDate(value?: string) {
