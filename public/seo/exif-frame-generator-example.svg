@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">FrameShot EXIF frame generator example</title>
+  <desc id="desc">A sample framed photo with camera settings including Sony A7C II, FE 35mm F1.8, ISO 400, f/1.8, and 1/500s.</desc>
+  <rect width="1200" height="800" fill="#f7f4ef"/>
+  <rect x="92" y="70" width="1016" height="532" rx="4" fill="#151515"/>
+  <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0" stop-color="#9eb8c6"/>
+    <stop offset="0.48" stop-color="#e6c19c"/>
+    <stop offset="1" stop-color="#27313d"/>
+  </linearGradient>
+  <rect x="116" y="94" width="968" height="484" rx="2" fill="url(#sky)"/>
+  <circle cx="854" cy="176" r="58" fill="#fff0c7" opacity="0.9"/>
+  <path d="M116 440 C245 342 346 371 453 298 C540 239 669 315 746 263 C865 183 967 286 1084 221 L1084 578 L116 578 Z" fill="#202b34" opacity="0.88"/>
+  <path d="M116 506 C242 447 346 461 478 409 C594 363 711 423 835 373 C949 327 1007 377 1084 340 L1084 578 L116 578 Z" fill="#10151b" opacity="0.94"/>
+  <rect x="92" y="602" width="1016" height="128" fill="#f7f4ef"/>
+  <text x="116" y="652" fill="#141414" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">FrameShot</text>
+  <text x="116" y="688" fill="#55514b" font-family="Arial, Helvetica, sans-serif" font-size="20">Your shot. Your gear. Your story.</text>
+  <text x="1084" y="650" fill="#141414" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" text-anchor="end">Sony A7C II · FE 35mm F1.8</text>
+  <text x="1084" y="688" fill="#55514b" font-family="Arial, Helvetica, sans-serif" font-size="20" text-anchor="end">35mm · f/1.8 · 1/500s · ISO 400</text>
+  <rect x="92" y="70" width="1016" height="660" rx="4" fill="none" stroke="#ded8cf" stroke-width="2"/>
+</svg>

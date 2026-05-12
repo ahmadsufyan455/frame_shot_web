@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+import { OG_IMAGE, SITE_NAME, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,26 +15,36 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://getframeshot.com"),
-  title: "FrameShot — Your shot. Your gear. Your story.",
+  metadataBase: new URL(SITE_URL),
+  applicationName: SITE_NAME,
+  title: {
+    default: "FrameShot - Free EXIF Frame Generator",
+    template: `%s | ${SITE_NAME}`,
+  },
   description:
-    "Add beautiful EXIF frames to your photos in seconds. Upload a photo, pick a style, download the result. Free. No sign-up. Processed entirely in your browser.",
+    "Create beautiful EXIF frames and camera settings overlays for photos. Free, private, no sign-up, and processed entirely in your browser.",
   keywords: [
+    "EXIF frame generator",
     "EXIF watermark tool",
     "EXIF frame",
     "add camera info to photo online",
     "photo EXIF overlay",
     "camera settings watermark",
+    "camera settings overlay",
   ],
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
-    title: "FrameShot — Your shot. Your gear. Your story.",
+    title: "FrameShot - Free EXIF Frame Generator",
     description:
-      "Automatically read EXIF metadata from your photo and render it as a beautiful, shareable frame. Free. No sign-up. 100% private.",
+      "Automatically read EXIF metadata from your photo and render it as a beautiful, shareable frame. Free, no sign-up, and 100% private.",
     type: "website",
-    url: "https://getframeshot.com",
+    url: "/",
+    siteName: SITE_NAME,
     images: [
       {
-        url: "/opengraph-image.jpg",
+        url: OG_IMAGE,
         width: 1200,
         height: 630,
         alt: "FrameShot app preview",
@@ -42,10 +53,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "FrameShot — EXIF Frame Generator",
+    title: "FrameShot - EXIF Frame Generator",
     description:
       "Add beautiful EXIF frames to your photos. Free. No sign-up. Processed entirely in your browser.",
-    images: ["/opengraph-image.jpg"],
+    images: [OG_IMAGE],
   },
 };
 

@@ -65,14 +65,14 @@ export default function UploadZone() {
       <div
         {...getRootProps()}
         className={`
-        border-2 border-dashed border-[#404040] rounded-[32px] 
-        w-full max-w-[672px] h-[clamp(6rem,34dvh,17.5rem)] max-h-full
-        px-6 py-5 sm:px-10 sm:py-8
+        border border-dashed border-neutral-700 rounded-[8px] 
+        w-full h-[clamp(9rem,24dvh,13.5rem)] max-h-full
+        px-5 py-6 sm:px-8 sm:py-8
         flex flex-col items-center justify-center
         transition-colors duration-200
         ${!isUploading && "cursor-pointer"}
-        ${isDragActive ? "bg-[#262626]/50 border-white/50" : ""}
-        ${isUploading ? "opacity-50" : "hover:border-white/30 hover:bg-[#262626]/30"}
+        ${isDragActive ? "border-white bg-white/[0.06]" : ""}
+        ${isUploading ? "opacity-50" : "hover:border-neutral-500 hover:bg-white/[0.03]"}
       `}
       >
         <input {...getInputProps()} />
@@ -86,15 +86,15 @@ export default function UploadZone() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center">
-            <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-[#262626] sm:mb-5 sm:size-16">
-              <ImagePlus className="size-6 text-white sm:size-7" strokeWidth={1.5} />
+            <div className="mb-3 flex size-11 items-center justify-center rounded-[8px] border border-neutral-800 bg-[#151515] sm:size-12">
+              <ImagePlus className="size-6 text-white" strokeWidth={1.5} />
             </div>
 
-            <p className="text-center text-[16px] font-semibold leading-6 tracking-[-0.25px] text-white sm:text-[18px] sm:leading-7 sm:tracking-[-0.4395px]">
-              Drag & drop photos
+            <p className="text-center text-[16px] font-semibold leading-6 text-white sm:text-[18px]">
+              Drop photos here
             </p>
 
-            <p className="mt-0.5 text-center text-[13px] font-medium leading-5 tracking-[-0.15px] text-[#737373] sm:mt-1 sm:text-[14px]">
+            <p className="mt-1 text-center text-[13px] font-medium leading-5 text-neutral-500 sm:text-[14px]">
               or click to browse files
             </p>
           </div>

@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "Privacy Notes - FrameShot",
   description:
     "FrameShot processes photos locally in your browser. Photos are not uploaded to our servers, and GPS EXIF data is ignored.",
+  alternates: {
+    canonical: "/privacy",
+  },
 };
 
 const sections = [
