@@ -19,6 +19,9 @@ export interface PaintOptions {
   borderWeight?: number;
   backgroundColor?: string;
   metadataTextScale?: number;
+  vintageStampPosition?: "bottom-right" | "bottom-left" | "hidden";
+  vintageNotePosition?: "bottom-left" | "bottom-center" | "bottom-right" | "hidden";
+  vintageIntensity?: "soft" | "classic" | "faded";
 }
 
 export interface ExportOptions {

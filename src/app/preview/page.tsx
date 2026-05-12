@@ -7,7 +7,7 @@ import { ArrowLeft, Download, SlidersHorizontal, Settings2, Image as ImageIcon, 
 import StylePicker from "@/components/StylePicker";
 import Filmstrip from "@/components/Filmstrip";
 import Toast, { type ToastMessage } from "@/components/Toast";
-import { renderFrame, exportFrameToBlob, downloadBlob } from "@/lib/renderer";
+import { renderFrame, exportFrameToBlob, downloadBlob, type PaintOptions } from "@/lib/renderer";
 import { usePhotoStore, getPhotoBlob, clearStorageWarning, type PhotoEntry } from "@/lib/photo-store";
 import { FRAME_STYLE_CONFIGS, type FrameStyle } from "@/lib/frame-styles";
 import type { ExifData } from "@/lib/exif";
@@ -29,6 +29,113 @@ function ExifInput({ label, value, onChange, placeholder }: {
         className="w-full bg-[#121212] border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neutral-500 transition-colors"
       />
     </div>
+  );
+}
+
+type VintageStampPosition = NonNullable<PaintOptions["vintageStampPosition"]>;
+type VintageNotePosition = NonNullable<PaintOptions["vintageNotePosition"]>;
+type VintageIntensity = NonNullable<PaintOptions["vintageIntensity"]>;
+
+const VINTAGE_STAMP_POSITIONS: Array<{ value: VintageStampPosition; label: string }> = [
+  { value: "bottom-right", label: "Right" },
+  { value: "bottom-left", label: "Left" },
+  { value: "hidden", label: "Hidden" },
+];
+
+const VINTAGE_NOTE_POSITIONS: Array<{ value: VintageNotePosition; label: string }> = [
+  { value: "bottom-left", label: "Left" },
+  { value: "bottom-center", label: "Center" },
+  { value: "bottom-right", label: "Right" },
+  { value: "hidden", label: "Hidden" },
+];
+
+const VINTAGE_INTENSITIES: Array<{ value: VintageIntensity; label: string }> = [
+  { value: "soft", label: "Soft" },
+  { value: "classic", label: "Classic" },
+  { value: "faded", label: "Faded" },
+];
+
+function SegmentedOption<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: Array<{ value: T; label: string }>;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-sm text-neutral-400">{label}</span>
+      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+        {options.map((option) => {
+          const isActive = option.value === value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onChange(option.value)}
+              className={`h-9 rounded-lg text-xs font-semibold transition-colors ${
+                isActive
+                  ? "bg-white text-black"
+                  : "bg-[#121212] text-neutral-500 hover:bg-[#1a1a1a] hover:text-neutral-300"
+              }`}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function VintageOptions({
+  stampPosition,
+  notePosition,
+  intensity,
+  onStampPositionChange,
+  onNotePositionChange,
+  onIntensityChange,
+}: {
+  stampPosition: VintageStampPosition;
+  notePosition: VintageNotePosition;
+  intensity: VintageIntensity;
+  onStampPositionChange: (value: VintageStampPosition) => void;
+  onNotePositionChange: (value: VintageNotePosition) => void;
+  onIntensityChange: (value: VintageIntensity) => void;
+}) {
+  return (
+    <>
+      <hr className="border-[#262626]" />
+      <section className="flex flex-col gap-5">
+        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+          <SlidersHorizontal className="w-4 h-4 text-neutral-400" /> Vintage Options
+        </h3>
+        <div className="flex flex-col gap-4">
+          <SegmentedOption
+            label="Stamp Position"
+            value={stampPosition}
+            options={VINTAGE_STAMP_POSITIONS}
+            onChange={onStampPositionChange}
+          />
+          <SegmentedOption
+            label="Note Position"
+            value={notePosition}
+            options={VINTAGE_NOTE_POSITIONS}
+            onChange={onNotePositionChange}
+          />
+          <SegmentedOption
+            label="Vintage Intensity"
+            value={intensity}
+            options={VINTAGE_INTENSITIES}
+            onChange={onIntensityChange}
+          />
+        </div>
+      </section>
+    </>
   );
 }
 
@@ -111,6 +218,9 @@ export default function PreviewPage() {
   const [showMetadata, setShowMetadata] = useState(true);
   const [showLogo, setShowLogo] = useState(true);
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+  const [vintageStampPosition, setVintageStampPosition] = useState<VintageStampPosition>("bottom-right");
+  const [vintageNotePosition, setVintageNotePosition] = useState<VintageNotePosition>("bottom-left");
+  const [vintageIntensity, setVintageIntensity] = useState<VintageIntensity>("classic");
   const [activeRatio, setActiveRatio] = useState('Original');
   const [selectedStyle, setSelectedStyle] = useState<FrameStyle>('classic');
   const [canvasReady, setCanvasReady] = useState(false);
@@ -139,6 +249,9 @@ export default function PreviewPage() {
     setBorderWeight(1);
     setMetadataTextScale(1);
     setBackgroundColor("#ffffff");
+    setVintageStampPosition("bottom-right");
+    setVintageNotePosition("bottom-left");
+    setVintageIntensity("classic");
     if (activePhoto) {
       setPerPhotoExif(prev => ({ ...prev, [activeIndex]: activePhoto.exifData }));
     }
@@ -156,7 +269,20 @@ export default function PreviewPage() {
     borderWeight,
     metadataTextScale,
     backgroundColor,
-  }), [activeAspectRatio, showMetadata, showLogo, borderWeight, metadataTextScale, backgroundColor]);
+    vintageStampPosition,
+    vintageNotePosition,
+    vintageIntensity,
+  }), [
+    activeAspectRatio,
+    showMetadata,
+    showLogo,
+    borderWeight,
+    metadataTextScale,
+    backgroundColor,
+    vintageStampPosition,
+    vintageNotePosition,
+    vintageIntensity,
+  ]);
   const debouncedEditedExif = useDebouncedValue(editedExif, 120);
   const debouncedPaintOptions = useDebouncedValue(currentPaintOptions, 120);
   const thumbnailExif = useMemo(() => activePhoto?.exifData ?? {}, [activePhoto]);
@@ -616,6 +742,17 @@ export default function PreviewPage() {
             </div>
           </section>
 
+          {selectedStyle === "vintage" && (
+            <VintageOptions
+              stampPosition={vintageStampPosition}
+              notePosition={vintageNotePosition}
+              intensity={vintageIntensity}
+              onStampPositionChange={setVintageStampPosition}
+              onNotePositionChange={setVintageNotePosition}
+              onIntensityChange={setVintageIntensity}
+            />
+          )}
+
           <hr className="border-[#262626]" />
 
           <section className="flex flex-col gap-5">
@@ -868,6 +1005,17 @@ export default function PreviewPage() {
                   </div>
                 </div>
               </section>
+
+              {selectedStyle === "vintage" && (
+                <VintageOptions
+                  stampPosition={vintageStampPosition}
+                  notePosition={vintageNotePosition}
+                  intensity={vintageIntensity}
+                  onStampPositionChange={setVintageStampPosition}
+                  onNotePositionChange={setVintageNotePosition}
+                  onIntensityChange={setVintageIntensity}
+                />
+              )}
 
               <hr className="border-[#262626]" />
 

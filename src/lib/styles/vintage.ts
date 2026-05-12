@@ -26,6 +26,9 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
   const weight = clamp(options?.borderWeight ?? 1, 0.5, 2);
   const bgColor = options?.backgroundColor ?? "#f4f1ea";
   const textScale = clamp(options?.metadataTextScale ?? 1, 0.5, 2);
+  const stampPosition = options?.vintageStampPosition ?? "bottom-right";
+  const notePosition = options?.vintageNotePosition ?? "bottom-left";
+  const intensity = options?.vintageIntensity ?? "classic";
   const borderScale = 0.85 + weight * 0.15;
 
   const topPadding = Math.round(width * 0.089 * borderScale);
@@ -86,17 +89,20 @@ export const paint: FramePainter = (canvas, image, exifData, options) => {
   ctx.beginPath();
   ctx.rect(printPadding, printPadding, innerW, innerH);
   ctx.clip();
-  ctx.filter = "sepia(0.25) contrast(0.95) saturate(0.8)";
+  ctx.filter = getVintageFilter(intensity);
   drawImageCover(ctx, image, printPadding, printPadding, innerW, innerH);
   ctx.restore();
 
-  drawStamp(ctx, paperW * 0.91, paperH * 0.959, width, formatStampDate(exifData.dateTime));
+  if (stampPosition !== "hidden") {
+    const stampX = stampPosition === "bottom-left" ? paperW * 0.09 : paperW * 0.91;
+    drawStamp(ctx, stampX, paperH * 0.959, width, formatStampDate(exifData.dateTime));
+  }
   ctx.restore();
 
   drawTape(ctx, width);
 
-  if (showMetadata) {
-    drawHandwrittenMetadata(ctx, exifData, width, paperX, paperY + paperH, totalHeight, textScale);
+  if (showMetadata && notePosition !== "hidden") {
+    drawHandwrittenMetadata(ctx, exifData, width, paperX, paperY + paperH, totalHeight, textScale, notePosition);
   }
 };
 
@@ -201,7 +207,8 @@ function drawHandwrittenMetadata(
   x: number,
   paperBottom: number,
   totalHeight: number,
-  textScale: number
+  textScale: number,
+  position: "bottom-left" | "bottom-center" | "bottom-right"
 ) {
   const camera = exifData.model?.trim();
   const month = formatMonthYear(exifData.dateTime);
@@ -216,11 +223,13 @@ function drawHandwrittenMetadata(
   const lineGap = Math.round(width * 0.012);
   const blockH = titleSize + (lines[1] ? lineGap + subSize : 0);
   const y = Math.min(totalHeight - Math.round(width * 0.035) - blockH, paperBottom + Math.round(width * 0.055));
+  const textX = position === "bottom-center" ? width / 2 : position === "bottom-right" ? width - x : x;
+  const textAlign = position === "bottom-center" ? "center" : position === "bottom-right" ? "right" : "left";
 
   ctx.save();
-  ctx.translate(x, y);
+  ctx.translate(textX, y);
   ctx.rotate(degrees(-2));
-  ctx.textAlign = "left";
+  ctx.textAlign = textAlign;
   ctx.textBaseline = "alphabetic";
   ctx.font = `700 ${titleSize}px "Caveat", "Dancing Script", "Bradley Hand", "Comic Sans MS", cursive`;
   ctx.fillStyle = "rgba(64, 64, 64, 0.90)";
@@ -257,6 +266,12 @@ function formatStampDate(value?: string) {
   const month = String(parsed.getMonth() + 1).padStart(2, "0");
   const day = String(parsed.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function getVintageFilter(intensity: "soft" | "classic" | "faded") {
+  if (intensity === "soft") return "sepia(0.15) contrast(0.98) saturate(0.9)";
+  if (intensity === "faded") return "sepia(0.35) contrast(0.88) saturate(0.65) brightness(1.04)";
+  return "sepia(0.25) contrast(0.95) saturate(0.8)";
 }
 
 function formatMonthYear(value?: string) {
