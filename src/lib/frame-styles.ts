@@ -39,6 +39,19 @@ export const FRAME_STYLE_CONFIGS: Record<FrameStyle, FrameStyleConfig> = {
       { key: "focalLength", label: "Focal Length", placeholder: "e.g. 35mm", half: true },
     ],
   },
+  signature: {
+    id: "signature",
+    label: "Signature",
+    description: "Gallery-exhibition layout with brand logo and bold specs readout",
+    hasLogo: true,
+    slots: [
+      { key: "model", label: "Camera", placeholder: "e.g. ILCE-7CM2" },
+      { key: "focalLength", label: "Focal Length", placeholder: "e.g. 35mm", half: true },
+      { key: "aperture", label: "Aperture", placeholder: "e.g. f/1.8", half: true },
+      { key: "shutterSpeed", label: "Shutter", placeholder: "e.g. 1/500s", half: true },
+      { key: "iso", label: "ISO", placeholder: "e.g. ISO 800", half: true },
+    ],
+  },
   "shot-on": {
     id: "shot-on",
     label: "Shot On",
@@ -87,19 +100,6 @@ export const FRAME_STYLE_CONFIGS: Record<FrameStyle, FrameStyleConfig> = {
     slots: [
       { key: "model", label: "Camera", placeholder: "e.g. ILCE-7CM2" },
       { key: "dateTime", label: "Capture Date", placeholder: "e.g. 2026-05-03" },
-    ],
-  },
-  signature: {
-    id: "signature",
-    label: "Signature",
-    description: "Gallery-exhibition layout with brand logo and bold specs readout",
-    hasLogo: true,
-    slots: [
-      { key: "model", label: "Camera", placeholder: "e.g. ILCE-7CM2" },
-      { key: "focalLength", label: "Focal Length", placeholder: "e.g. 35mm", half: true },
-      { key: "aperture", label: "Aperture", placeholder: "e.g. f/1.8", half: true },
-      { key: "shutterSpeed", label: "Shutter", placeholder: "e.g. 1/500s", half: true },
-      { key: "iso", label: "ISO", placeholder: "e.g. ISO 800", half: true },
     ],
   },
 };
