@@ -193,6 +193,16 @@ const BACKGROUND_PRESETS = [
   { color: "#f5f0eb", label: "Cream" },
 ] as const;
 
+const STORYTELLER_BACKGROUND_PRESETS = [
+  { color: "#F6F1E8", label: "Vintage Paper" },
+  { color: "#F9F6F0", label: "Journal" },
+  { color: "#FAF8F3", label: "Soft Paper" },
+] as const;
+
+function getDefaultBackgroundColor(style: FrameStyle) {
+  return style === "storyteller" ? STORYTELLER_BACKGROUND_PRESETS[0].color : BACKGROUND_PRESETS[0].color;
+}
+
 const ASPECT_RATIOS = [
   { label: 'Original', w: 0, h: 0 },
   { label: '1:1', w: 1, h: 1 },
@@ -242,14 +252,21 @@ export default function PreviewPage() {
     }));
   }, [activeIndex, activePhoto]);
 
-  const isCustomColor = !BACKGROUND_PRESETS.some(p => p.color === backgroundColor);
+  const backgroundPresets = selectedStyle === "storyteller" ? STORYTELLER_BACKGROUND_PRESETS : BACKGROUND_PRESETS;
+  const supportsCustomBackgroundColor = selectedStyle !== "storyteller";
+  const isCustomColor = supportsCustomBackgroundColor && !backgroundPresets.some(p => p.color === backgroundColor);
+
+  const handleStyleChange = useCallback((style: FrameStyle) => {
+    setSelectedStyle(style);
+    setBackgroundColor(getDefaultBackgroundColor(style));
+  }, []);
 
   const handleReset = useCallback(() => {
     setShowMetadata(true);
     setShowLogo(true);
     setBorderWeight(1);
     setMetadataTextScale(1);
-    setBackgroundColor("#ffffff");
+    setBackgroundColor(getDefaultBackgroundColor(selectedStyle));
     setVintageStampPosition("bottom-right");
     setVintageNotePosition("bottom-left");
     setVintageIntensity("classic");
@@ -257,7 +274,7 @@ export default function PreviewPage() {
     if (activePhoto) {
       setPerPhotoExif(prev => ({ ...prev, [activeIndex]: activePhoto.exifData }));
     }
-  }, [activePhoto, activeIndex]);
+  }, [activePhoto, activeIndex, selectedStyle]);
 
   const activeAspectRatio = (() => {
     const s = ASPECT_RATIOS.find(r => r.label === activeRatio);
@@ -611,7 +628,7 @@ export default function PreviewPage() {
 
           <StylePicker
             selectedStyle={selectedStyle}
-            onStyleChange={setSelectedStyle}
+            onStyleChange={handleStyleChange}
             image={loadedImg}
             exifData={thumbnailExif}
           />
@@ -712,7 +729,7 @@ export default function PreviewPage() {
             <div className="flex flex-col gap-3">
               <label className="text-sm text-neutral-400">Background</label>
               <div className="flex flex-wrap gap-3 items-center">
-                {BACKGROUND_PRESETS.map(({ color, label }) => {
+                {backgroundPresets.map(({ color, label }) => {
                   const isActive = backgroundColor === color;
                   return (
                     <button
@@ -726,22 +743,24 @@ export default function PreviewPage() {
                     />
                   );
                 })}
-                <div className="relative">
-                  <input
-                    type="color"
-                    value={backgroundColor}
-                    onChange={(e) => setBackgroundColor(e.target.value)}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  <div
-                    className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 flex items-center justify-center ${
-                      isCustomColor ? "border-white scale-110" : "border-neutral-800"
-                    }`}
-                    style={{ background: isCustomColor ? backgroundColor : "conic-gradient(from 0deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)" }}
-                  >
-                    {!isCustomColor && <div className="w-3 h-3 rounded-full bg-[#0a0a0a]" />}
+                {supportsCustomBackgroundColor && (
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={backgroundColor}
+                      onChange={(e) => setBackgroundColor(e.target.value)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div
+                      className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 flex items-center justify-center ${
+                        isCustomColor ? "border-white scale-110" : "border-neutral-800"
+                      }`}
+                      style={{ background: isCustomColor ? backgroundColor : "conic-gradient(from 0deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)" }}
+                    >
+                      {!isCustomColor && <div className="w-3 h-3 rounded-full bg-[#0a0a0a]" />}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </section>
@@ -1008,7 +1027,7 @@ export default function PreviewPage() {
                 <div className="flex flex-col gap-3">
                   <label className="text-sm text-neutral-400">Background</label>
                   <div className="flex flex-wrap gap-3 items-center">
-                    {BACKGROUND_PRESETS.map(({ color, label }) => {
+                    {backgroundPresets.map(({ color, label }) => {
                       const isActive = backgroundColor === color;
                       return (
                         <button
@@ -1022,22 +1041,24 @@ export default function PreviewPage() {
                         />
                       );
                     })}
-                    <div className="relative">
-                      <input
-                        type="color"
-                        value={backgroundColor}
-                        onChange={(e) => setBackgroundColor(e.target.value)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
-                      <div
-                        className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 flex items-center justify-center ${
-                          isCustomColor ? "border-white scale-110" : "border-neutral-800"
-                        }`}
-                        style={{ background: isCustomColor ? backgroundColor : "conic-gradient(from 0deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)" }}
-                      >
-                        {!isCustomColor && <div className="w-3 h-3 rounded-full bg-[#0a0a0a]" />}
+                    {supportsCustomBackgroundColor && (
+                      <div className="relative">
+                        <input
+                          type="color"
+                          value={backgroundColor}
+                          onChange={(e) => setBackgroundColor(e.target.value)}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <div
+                          className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 flex items-center justify-center ${
+                            isCustomColor ? "border-white scale-110" : "border-neutral-800"
+                          }`}
+                          style={{ background: isCustomColor ? backgroundColor : "conic-gradient(from 0deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)" }}
+                        >
+                          {!isCustomColor && <div className="w-3 h-3 rounded-full bg-[#0a0a0a]" />}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </section>

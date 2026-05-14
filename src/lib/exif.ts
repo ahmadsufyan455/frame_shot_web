@@ -3,7 +3,7 @@
  *
  * Wraps the `exifr` npm library with field normalisation.
  *
- * GPS data is intentionally ignored for privacy (PRD 6.3).
+ * GPS data is read locally when present so styles can show approximate places.
  *
  * Usage:
  *   import { extractExif } from "@/lib/exif";
@@ -24,6 +24,9 @@ export interface ExifData {
   exposureComp?: string; // Formatted    — e.g. "+0.3 EV"
   whiteBalance?: string; // Formatted    — e.g. "Auto"
   dateTime?: string;     // Formatted    — e.g. "May 3, 2026 · 14:32"
+  location?: string;     // Place name   — e.g. "Yogyakarta"
+  latitude?: string;     // Decimal GPS  — e.g. "35.670000"
+  longitude?: string;    // Decimal GPS  — e.g. "139.650000"
 }
 
 /**
@@ -38,8 +41,7 @@ export async function extractExif(file: File): Promise<ExifData> {
   try {
     // exifr.parse reads only metadata — does NOT decode the full image
     const raw = await exifr.parse(file, {
-      // Exclude GPS to protect privacy (PRD 6.3)
-      gps: false,
+      gps: true,
       // Request only the tags we need
       pick: [
         "Make",
@@ -52,12 +54,20 @@ export async function extractExif(file: File): Promise<ExifData> {
         "ExposureCompensation",
         "WhiteBalance",
         "DateTimeOriginal",
+        "GPSLatitude",
+        "GPSLatitudeRef",
+        "GPSLongitude",
+        "GPSLongitudeRef",
       ],
     });
 
     if (!raw) {
       return {}; // No EXIF — caller shows the "no data" banner
     }
+
+    const latitude = formatCoordinate(raw.latitude);
+    const longitude = formatCoordinate(raw.longitude);
+    const location = latitude && longitude ? await reverseGeocodeLocation(latitude, longitude) : "";
 
     // TODO: Normalise each raw field to the display format
     return {
@@ -77,10 +87,65 @@ export async function extractExif(file: File): Promise<ExifData> {
       dateTime: raw.DateTimeOriginal
         ? formatDateTime(raw.DateTimeOriginal)
         : "",
+      location,
+      latitude,
+      longitude,
     };
   } catch {
     // Graceful fallback — return empty data, never throw to UI
     return {};
+  }
+}
+
+function formatCoordinate(value: unknown): string {
+  return typeof value === "number" && Number.isFinite(value) ? value.toFixed(6) : "";
+}
+
+async function reverseGeocodeLocation(latitude: string, longitude: string): Promise<string> {
+  if (typeof fetch !== "function") return "";
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 2500);
+
+  try {
+    const params = new URLSearchParams({
+      format: "jsonv2",
+      lat: latitude,
+      lon: longitude,
+      zoom: "10",
+      addressdetails: "1",
+    });
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+        "Accept-Language": typeof navigator !== "undefined" ? navigator.language : "en",
+      },
+    });
+
+    if (!response.ok) return "";
+
+    const data = await response.json() as {
+      name?: string;
+      address?: Record<string, string | undefined>;
+    };
+    const address = data.address ?? {};
+
+    return (
+      address.city ??
+      address.town ??
+      address.village ??
+      address.municipality ??
+      address.city_district ??
+      address.county ??
+      address.state ??
+      data.name ??
+      ""
+    );
+  } catch {
+    return "";
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

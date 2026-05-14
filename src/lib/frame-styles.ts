@@ -7,7 +7,8 @@ export type FrameStyle =
   | "fine-art"
   | "editorial"
   | "vintage"
-  | "signature";
+  | "signature"
+  | "storyteller";
 
 export interface ExifSlot {
   key: keyof ExifData;
@@ -100,6 +101,17 @@ export const FRAME_STYLE_CONFIGS: Record<FrameStyle, FrameStyleConfig> = {
     slots: [
       { key: "model", label: "Camera", placeholder: "e.g. ILCE-7CM2" },
       { key: "dateTime", label: "Capture Date", placeholder: "e.g. 2026-05-03" },
+    ],
+  },
+  storyteller: {
+    id: "storyteller",
+    label: "Storyteller",
+    description: "Journal-page layout with typewriter metadata and pasted-print photo",
+    slots: [
+      { key: "model", label: "Camera", placeholder: "e.g. ILCE-7CM2" },
+      { key: "make", label: "Brand", placeholder: "e.g. Sony" },
+      { key: "dateTime", label: "Capture Date", placeholder: "e.g. 2026-05-03" },
+      { key: "location", label: "Location", placeholder: "e.g. Yogyakarta" },
     ],
   },
 };

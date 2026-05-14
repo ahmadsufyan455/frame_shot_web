@@ -19,7 +19,7 @@ const homepageFaq = [
   {
     question: "Are photos uploaded to a server?",
     answer:
-      "No. Photos are processed locally in your browser, and GPS metadata is ignored for privacy.",
+      "No. Photos are processed locally in your browser. If GPS exists and a style needs a place name, coordinates may be sent from your browser for reverse geocoding.",
   },
 ];
 

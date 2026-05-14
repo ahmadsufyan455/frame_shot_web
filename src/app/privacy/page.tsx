@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 export const metadata: Metadata = {
   title: "Privacy Notes - FrameShot",
   description:
-    "FrameShot processes photos locally in your browser. Photos are not uploaded to our servers, and GPS EXIF data is ignored.",
+    "FrameShot processes photos and EXIF metadata locally in your browser. Photos are not uploaded to our servers.",
   alternates: {
     canonical: "/privacy",
   },
@@ -21,8 +21,8 @@ const sections = [
     body: "Your photos are not uploaded to FrameShot servers for editing, previewing, or exporting. The generated frame is created directly in your browser.",
   },
   {
-    title: "GPS metadata is ignored",
-    body: "FrameShot intentionally ignores GPS EXIF fields. The app only uses display metadata such as camera model, lens, focal length, aperture, shutter speed, ISO, exposure compensation, white balance, and capture time.",
+    title: "GPS metadata stays local",
+    body: "When a photo includes GPS EXIF fields, FrameShot can read latitude and longitude locally. For styles that show a place name, the browser may send those coordinates to OpenStreetMap Nominatim for reverse geocoding. You can edit or remove the resolved location before exporting.",
   },
   {
     title: "Browser storage",
@@ -53,8 +53,8 @@ export default function PrivacyPage() {
           </h1>
           <p className="max-w-[640px] text-base leading-7 text-neutral-400">
             FrameShot is designed as a private, browser-based photo tool. The
-            short version: your photos are processed locally, GPS data is
-            ignored, and exports are generated on your device.
+            short version: your photos and metadata are processed locally, and
+            exports are generated on your device.
           </p>
         </header>
 

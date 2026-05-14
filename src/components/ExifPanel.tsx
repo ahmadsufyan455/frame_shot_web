@@ -22,6 +22,7 @@ import type { ExifData } from "@/lib/exif";
  *  - Exposure Compensation
  *  - White Balance
  *  - Date & Time
+ *  - Location and GPS coordinates when present
  *
  * TODO: Accept props: { exifData: ExifData, onChange: (field, value) => void }
  * TODO: Implement inline edit state per field
@@ -40,6 +41,9 @@ const EXIF_FIELDS: { key: keyof ExifData; label: string; placeholder: string }[]
     { key: "exposureComp", label: "Exposure Comp", placeholder: "e.g. +0.3 EV" },
     { key: "whiteBalance", label: "White Balance", placeholder: "e.g. Auto" },
     { key: "dateTime", label: "Date & Time", placeholder: "e.g. May 3, 2026 · 14:32" },
+    { key: "location", label: "Location", placeholder: "e.g. Yogyakarta" },
+    { key: "latitude", label: "Latitude", placeholder: "e.g. 35.670000" },
+    { key: "longitude", label: "Longitude", placeholder: "e.g. 139.650000" },
   ];
 
 export default function ExifPanel() {

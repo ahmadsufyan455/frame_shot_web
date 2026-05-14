@@ -51,7 +51,7 @@ export const toolPages: SeoPage[] = [
       {
         title: "Built for photographers, not form filling",
         body: "Upload a JPEG, PNG, or HEIC file and FrameShot extracts the useful shooting details automatically. Missing fields stay editable so screenshots and exported social images still work.",
-        items: ["Camera body and lens", "Aperture, shutter speed, ISO", "Focal length, exposure compensation, white balance", "Capture date without GPS coordinates"],
+        items: ["Camera body and lens", "Aperture, shutter speed, ISO", "Focal length, exposure compensation, white balance", "Capture date and optional local GPS fields"],
       },
       {
         title: "Private by design",
@@ -118,7 +118,7 @@ export const toolPages: SeoPage[] = [
       {
         question: "Will the watermark include GPS location?",
         answer:
-          "No. FrameShot intentionally ignores GPS metadata and focuses on display settings useful for photographers.",
+          "Only when a selected style uses it. GPS coordinates are read locally, may be reverse geocoded in the browser, and remain editable before export.",
       },
       {
         question: "Can I download as JPEG or PNG?",
@@ -242,8 +242,8 @@ export const toolPages: SeoPage[] = [
         body: "FrameShot focuses on the details photographers actually share: camera, lens, exposure settings, focal length, white balance, and date.",
       },
       {
-        title: "GPS stays out",
-        body: "Location metadata is intentionally ignored so the overlay stays useful without exposing private coordinates.",
+        title: "Location stays editable",
+        body: "When a style uses location, GPS metadata is read locally and may be converted into a place name in the browser. The result can be edited or removed before export.",
       },
       {
         title: "Export-ready frames",
@@ -328,7 +328,7 @@ export const guidePages: SeoPage[] = [
     title: "What is EXIF data in a photo?",
     metaTitle: "What Is EXIF Data? Camera Metadata Explained",
     description:
-      "Learn what EXIF data is, which camera settings it stores, why photographers share it, and how to display it safely without exposing GPS details.",
+      "Learn what EXIF data is, which camera settings it stores, why photographers share it, and how to review location metadata before exporting.",
     intent: "Users want a beginner-friendly explanation of EXIF metadata.",
     keywords: ["what is EXIF data", "EXIF metadata", "photo metadata"],
     intro:
@@ -344,7 +344,7 @@ export const guidePages: SeoPage[] = [
       },
       {
         title: "Privacy matters",
-        body: "Some photos can include location metadata. A public overlay should focus on camera settings and avoid exposing GPS coordinates.",
+        body: "Some photos can include location metadata. Review or remove GPS coordinates before exporting a frame that you plan to share publicly.",
       },
     ],
     faq: [
@@ -361,7 +361,7 @@ export const guidePages: SeoPage[] = [
       {
         question: "Should I share GPS EXIF data?",
         answer:
-          "Be careful. GPS metadata can reveal where a photo was taken, so FrameShot ignores GPS fields in its display workflow.",
+          "Be careful. GPS metadata can reveal where a photo was taken, so review any location fields before exporting or sharing.",
       },
     ],
     related: ["/exif-frame-generator", "/photo-metadata-overlay", "/guides/how-to-add-camera-settings-to-photos"],

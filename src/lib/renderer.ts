@@ -11,6 +11,7 @@ const PAINTERS: Record<FrameStyle, () => Promise<{ paint: FramePainter }>> = {
   editorial: () => import("./styles/editorial"),
   vintage: () => import("./styles/vintage"),
   signature: () => import("./styles/signature"),
+  storyteller: () => import("./styles/storyteller"),
 };
 
 export interface PaintOptions {
