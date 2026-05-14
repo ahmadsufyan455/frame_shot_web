@@ -33,6 +33,7 @@ const ih = (img: SourceImage) => "naturalHeight" in img ? img.naturalHeight : im
 
 const BRAND_LOGO_MAP: Record<string, string> = {
   apple: "apple",
+  asus: "asus",
   blackmagic: "blackmagic",
   canon: "canon",
   dji: "dji",
@@ -41,16 +42,21 @@ const BRAND_LOGO_MAP: Record<string, string> = {
   google: "google",
   gopro: "gopro",
   hasselblad: "hasselblad",
+  honor: "honor",
   huawei: "huawei",
+  infinix: "infinix",
   insta360: "insta360",
   leica: "leica",
+  lumix: "lumix",
+  motorola: "motorola",
   nikon: "nikon",
   olympus: "olympus",
   oneplus: "oneplus",
   oppo: "oppo",
+  panasonic: "panasonic",
   pentax: "pentax",
-  "phase one": "phase_one",
-  phaseone: "phase_one",
+  phaseone: "phaseone",
+  realme: "realme",
   ricoh: "ricoh",
   samsung: "samsung",
   sigma: "sigma",
@@ -58,6 +64,7 @@ const BRAND_LOGO_MAP: Record<string, string> = {
   tamron: "tamron",
   vivo: "vivo",
   xiaomi: "xiaomi",
+  zte: "zte",
 };
 
 const logoCache = new Map<string, HTMLImageElement | ImageBitmap | null>();
