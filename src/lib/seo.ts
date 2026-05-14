@@ -50,7 +50,7 @@ export const toolPages: SeoPage[] = [
     sections: [
       {
         title: "Built for photographers, not form filling",
-        body: "Upload a JPEG, PNG, HEIC, or supported RAW file and FrameShot extracts the useful shooting details automatically. Missing fields stay editable so screenshots and exported social images still work.",
+        body: "Upload a JPEG, PNG, or HEIC file and FrameShot extracts the useful shooting details automatically. Missing fields stay editable so screenshots and exported social images still work.",
         items: ["Camera body and lens", "Aperture, shutter speed, ISO", "Focal length, exposure compensation, white balance", "Capture date without GPS coordinates"],
       },
       {

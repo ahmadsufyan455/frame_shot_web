@@ -12,6 +12,7 @@ export default function UploadZone() {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [showLimitDialog, setShowLimitDialog] = useState(false);
+  const [showFormatDialog, setShowFormatDialog] = useState(false);
   const router = useRouter();
 
   useEffect(() => { clearPhotos(); }, []);
@@ -45,15 +46,18 @@ export default function UploadZone() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    onDropRejected: (rejections) => {
+      const hasInvalidType = rejections.some(r =>
+        r.errors.some(e => e.code === "file-invalid-type")
+      );
+      if (hasInvalidType) {
+        setShowFormatDialog(true);
+      }
+    },
     accept: {
       'image/jpeg': ['.jpg', '.jpeg'],
       'image/png': ['.png'],
       'image/heic': ['.heic', '.heif'],
-      'image/x-adobe-dng': ['.dng'],
-      'image/x-sony-arw': ['.arw'],
-      'image/x-fuji-raf': ['.raf'],
-      'image/x-nikon-nef': ['.nef'],
-      'image/x-canon-cr3': ['.cr3'],
     },
     maxSize: 52428800,
     multiple: true,
@@ -106,6 +110,15 @@ export default function UploadZone() {
         onClose={() => setShowLimitDialog(false)}
         title="Too many photos"
         description={`You can upload up to ${MAX_PHOTOS} photos at a time. Please select fewer files and try again.`}
+        actionLabel="Got it"
+        variant="warning"
+      />
+
+      <Dialog
+        open={showFormatDialog}
+        onClose={() => setShowFormatDialog(false)}
+        title="Unsupported format"
+        description="RAW formats (CR3, ARW, NEF, RAF, DNG) are not supported. Please upload JPEG, PNG, or HEIC files instead."
         actionLabel="Got it"
         variant="warning"
       />

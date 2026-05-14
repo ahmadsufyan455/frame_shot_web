@@ -14,7 +14,7 @@ const homepageFaq = [
   {
     question: "Which formats are supported?",
     answer:
-      "FrameShot accepts common photo formats including JPEG, PNG, HEIC, DNG, ARW, RAF, NEF, and CR3, with browser support varying by format.",
+      "FrameShot accepts JPEG, PNG, and HEIC photo formats. RAW formats (CR3, ARW, NEF, RAF, DNG) are not supported as browsers cannot display them.",
   },
   {
     question: "Are photos uploaded to a server?",
