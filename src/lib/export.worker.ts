@@ -32,6 +32,7 @@ const PAINTERS: Record<FrameStyle, () => Promise<{ paint: FramePainter }>> = {
   "fine-art": () => import("./styles/fine-art"),
   editorial: () => import("./styles/editorial"),
   vintage: () => import("./styles/vintage"),
+  signature: () => import("./styles/signature"),
 };
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {

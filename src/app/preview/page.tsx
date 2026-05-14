@@ -221,6 +221,7 @@ export default function PreviewPage() {
   const [vintageStampPosition, setVintageStampPosition] = useState<VintageStampPosition>("bottom-right");
   const [vintageNotePosition, setVintageNotePosition] = useState<VintageNotePosition>("bottom-left");
   const [vintageIntensity, setVintageIntensity] = useState<VintageIntensity>("classic");
+  const [logoScale, setLogoScale] = useState(1);
   const [activeRatio, setActiveRatio] = useState('Original');
   const [selectedStyle, setSelectedStyle] = useState<FrameStyle>('classic');
   const [canvasReady, setCanvasReady] = useState(false);
@@ -252,6 +253,7 @@ export default function PreviewPage() {
     setVintageStampPosition("bottom-right");
     setVintageNotePosition("bottom-left");
     setVintageIntensity("classic");
+    setLogoScale(1);
     if (activePhoto) {
       setPerPhotoExif(prev => ({ ...prev, [activeIndex]: activePhoto.exifData }));
     }
@@ -269,6 +271,7 @@ export default function PreviewPage() {
     borderWeight,
     metadataTextScale,
     backgroundColor,
+    logoScale,
     vintageStampPosition,
     vintageNotePosition,
     vintageIntensity,
@@ -279,6 +282,7 @@ export default function PreviewPage() {
     borderWeight,
     metadataTextScale,
     backgroundColor,
+    logoScale,
     vintageStampPosition,
     vintageNotePosition,
     vintageIntensity,
@@ -753,6 +757,38 @@ export default function PreviewPage() {
             />
           )}
 
+          {selectedStyle === "signature" && (
+            <>
+              <hr className="border-[#262626]" />
+              <section className="flex flex-col gap-5">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <SlidersHorizontal className="w-4 h-4 text-neutral-400" /> Signature Options
+                </h3>
+                <div className="flex flex-col gap-3">
+                  <label className="text-sm text-neutral-400 flex justify-between items-center">
+                    <span>Logo Size</span>
+                    <span className="text-neutral-500 font-medium">{logoScale}x</span>
+                  </label>
+                  <div className="relative flex items-center h-4">
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2"
+                      step="0.1"
+                      value={logoScale}
+                      onChange={(e) => setLogoScale(parseFloat(e.target.value))}
+                      className="w-full h-1.5 bg-neutral-800 border border-neutral-700 rounded-full appearance-none cursor-pointer outline-none focus:outline-none z-10 bg-no-repeat [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md"
+                      style={{
+                        backgroundImage: 'linear-gradient(white, white)',
+                        backgroundSize: `${((logoScale - 0.5) / 1.5) * 100}% 100%`
+                      }}
+                    />
+                  </div>
+                </div>
+              </section>
+            </>
+          )}
+
           <hr className="border-[#262626]" />
 
           <section className="flex flex-col gap-5">
@@ -1015,6 +1051,38 @@ export default function PreviewPage() {
                   onNotePositionChange={setVintageNotePosition}
                   onIntensityChange={setVintageIntensity}
                 />
+              )}
+
+              {selectedStyle === "signature" && (
+                <>
+                  <hr className="border-[#262626]" />
+                  <section className="flex flex-col gap-5">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                      <SlidersHorizontal className="w-4 h-4 text-neutral-400" /> Signature Options
+                    </h3>
+                    <div className="flex flex-col gap-3">
+                      <label className="text-sm text-neutral-400 flex justify-between items-center">
+                        <span>Logo Size</span>
+                        <span className="text-neutral-500 font-medium">{logoScale}x</span>
+                      </label>
+                      <div className="relative flex items-center h-4">
+                        <input
+                          type="range"
+                          min="0.5"
+                          max="2"
+                          step="0.1"
+                          value={logoScale}
+                          onChange={(e) => setLogoScale(parseFloat(e.target.value))}
+                          className="w-full h-1.5 bg-neutral-800 border border-neutral-700 rounded-full appearance-none cursor-pointer outline-none focus:outline-none z-10 bg-no-repeat [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md"
+                          style={{
+                            backgroundImage: 'linear-gradient(white, white)',
+                            backgroundSize: `${((logoScale - 0.5) / 1.5) * 100}% 100%`
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </section>
+                </>
               )}
 
               <hr className="border-[#262626]" />

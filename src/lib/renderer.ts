@@ -10,6 +10,7 @@ const PAINTERS: Record<FrameStyle, () => Promise<{ paint: FramePainter }>> = {
   "fine-art": () => import("./styles/fine-art"),
   editorial: () => import("./styles/editorial"),
   vintage: () => import("./styles/vintage"),
+  signature: () => import("./styles/signature"),
 };
 
 export interface PaintOptions {
@@ -19,6 +20,7 @@ export interface PaintOptions {
   borderWeight?: number;
   backgroundColor?: string;
   metadataTextScale?: number;
+  logoScale?: number;
   vintageStampPosition?: "bottom-right" | "bottom-left" | "hidden";
   vintageNotePosition?: "bottom-left" | "bottom-center" | "bottom-right" | "hidden";
   vintageIntensity?: "soft" | "classic" | "faded";
