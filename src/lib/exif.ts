@@ -35,7 +35,6 @@ export interface ExifData {
  *
  * TODO: Implement field normalisation (e.g. FNumber → "f/1.8")
  * TODO: Handle RAW formats via exifr options (metadata-only mode for performance)
- * TODO: Detect and load heic2any polyfill for HEIC on non-Safari browsers
  */
 export async function extractExif(file: File): Promise<ExifData> {
   try {

@@ -59,7 +59,7 @@ export const toolPages: SeoPage[] = [
       },
       {
         title: "Style options that look shareable",
-        body: "Choose from clean editorial layouts, darkroom-inspired frames, film border treatments, minimal line styles, and camera-inspired designs without rebuilding the graphic manually.",
+        body: "Choose from clean editorial layouts, signature frames, minimal line styles, vintage treatments, and camera-inspired designs without rebuilding the graphic manually.",
       },
     ],
     faq: [

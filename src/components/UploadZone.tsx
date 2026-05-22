@@ -2,6 +2,7 @@
 
 import Dialog from "@/components/Dialog";
 import { extractExif } from "@/lib/exif";
+import { prepareImageForCanvas } from "@/lib/image-file";
 import { addPhotos, clearPhotos, MAX_PHOTOS, type PhotoEntry } from "@/lib/photo-store";
 import { ImagePlus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -13,6 +14,8 @@ export default function UploadZone() {
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [showLimitDialog, setShowLimitDialog] = useState(false);
   const [showFormatDialog, setShowFormatDialog] = useState(false);
+  const [showSizeDialog, setShowSizeDialog] = useState(false);
+  const [showProcessingDialog, setShowProcessingDialog] = useState(false);
   const router = useRouter();
 
   useEffect(() => { clearPhotos(); }, []);
@@ -33,14 +36,16 @@ export default function UploadZone() {
       for (let i = 0; i < acceptedFiles.length; i++) {
         const file = acceptedFiles[i];
         const exifData = await extractExif(file);
-        const objectUrl = URL.createObjectURL(file);
-        entries.push({ id: crypto.randomUUID(), objectUrl, exifData, filename: file.name, file });
+        const displayBlob = await prepareImageForCanvas(file);
+        const objectUrl = URL.createObjectURL(displayBlob);
+        entries.push({ id: crypto.randomUUID(), objectUrl, exifData, filename: file.name, file: displayBlob });
         setProgress({ done: i + 1, total: acceptedFiles.length });
       }
       await addPhotos(entries);
       router.push("/preview");
     } catch {
       setIsUploading(false);
+      setShowProcessingDialog(true);
     }
   }, [router]);
 
@@ -52,12 +57,21 @@ export default function UploadZone() {
       );
       if (hasInvalidType) {
         setShowFormatDialog(true);
+        return;
+      }
+
+      const hasOversizedFile = rejections.some(r =>
+        r.errors.some(e => e.code === "file-too-large")
+      );
+      if (hasOversizedFile) {
+        setShowSizeDialog(true);
       }
     },
     accept: {
       'image/jpeg': ['.jpg', '.jpeg'],
       'image/png': ['.png'],
       'image/heic': ['.heic', '.heif'],
+      'image/heif': ['.heif'],
     },
     maxSize: 52428800,
     multiple: true,
@@ -119,6 +133,24 @@ export default function UploadZone() {
         onClose={() => setShowFormatDialog(false)}
         title="Unsupported format"
         description="RAW formats (CR3, ARW, NEF, RAF, DNG) are not supported. Please upload JPEG, PNG, or HEIC files instead."
+        actionLabel="Got it"
+        variant="warning"
+      />
+
+      <Dialog
+        open={showSizeDialog}
+        onClose={() => setShowSizeDialog(false)}
+        title="File too large"
+        description="This file is too large. Please upload photos up to 50MB."
+        actionLabel="Got it"
+        variant="warning"
+      />
+
+      <Dialog
+        open={showProcessingDialog}
+        onClose={() => setShowProcessingDialog(false)}
+        title="Could not read photo"
+        description="FrameShot could not prepare this photo. Try exporting it as a JPEG or PNG and upload it again."
         actionLabel="Got it"
         variant="warning"
       />

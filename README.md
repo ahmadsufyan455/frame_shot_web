@@ -11,8 +11,8 @@ FrameShot is a free, browser-based tool that automatically reads EXIF metadata f
 ## Features (v1)
 
 - 📸 Drag-and-drop or click-to-browse photo upload
-- 🔍 Client-side EXIF extraction via `exifr` (JPEG, PNG, HEIC, DNG, ARW, RAF, NEF, CR3)
-- 🎨 6 frame styles: Classic, Darkroom, Film Border, Minimal Line, Fujifilm Sim, Architect
+- 🔍 Client-side EXIF extraction via `exifr` (JPEG, PNG, HEIC)
+- 🎨 8 frame styles: Classic, Signature, Shot On, Minimal Line, Fine Art, Editorial, Vintage, Storyteller
 - ⚡ Real-time Canvas preview (< 100ms re-render)
 - ✏️ Inline EXIF field editing
 - 💾 JPEG & PNG download at full original resolution
@@ -53,11 +53,13 @@ src/
 │   ├── renderer.ts           # Canvas drawing orchestrator
 │   └── styles/
 │       ├── classic.ts        # Classic frame painter
-│       ├── darkroom.ts       # Darkroom frame painter
-│       ├── film-border.ts    # Film Border frame painter
+│       ├── signature.ts      # Signature frame painter
+│       ├── shot-on.ts        # Shot On frame painter
 │       ├── minimal-line.ts   # Minimal Line frame painter
-│       ├── fujifilm-sim.ts   # Fujifilm Sim frame painter
-│       └── architect.ts      # Architect frame painter
+│       ├── fine-art.ts       # Fine Art frame painter
+│       ├── editorial.ts      # Editorial frame painter
+│       ├── vintage.ts        # Vintage frame painter
+│       └── storyteller.ts    # Storyteller frame painter
 └── public/
     ├── logos/                # Camera brand SVGs (30 brands — TODO)
     └── watermark.svg         # FrameShot watermark asset
