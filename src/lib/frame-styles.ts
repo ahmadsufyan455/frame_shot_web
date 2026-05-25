@@ -8,7 +8,8 @@ export type FrameStyle =
   | "editorial"
   | "vintage"
   | "signature"
-  | "storyteller";
+  | "storyteller"
+  | "travel";
 
 export interface ExifSlot {
   key: keyof ExifData;
@@ -112,6 +113,15 @@ export const FRAME_STYLE_CONFIGS: Record<FrameStyle, FrameStyleConfig> = {
       { key: "make", label: "Brand", placeholder: "e.g. Sony" },
       { key: "dateTime", label: "Capture Date", placeholder: "e.g. 2026-05-03" },
       { key: "location", label: "Location", placeholder: "e.g. Yogyakarta" },
+    ],
+  },
+  travel: {
+    id: "travel",
+    label: "Travel",
+    description: "Gallery-print travel keepsake with handwritten location and month-year caption",
+    slots: [
+      { key: "location", label: "Location", placeholder: "e.g. Kyoto, Japan" },
+      { key: "dateTime", label: "Capture Date", placeholder: "e.g. 2026-05" },
     ],
   },
 };

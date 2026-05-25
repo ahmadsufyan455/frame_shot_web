@@ -199,8 +199,20 @@ const STORYTELLER_BACKGROUND_PRESETS = [
   { color: "#FAF8F3", label: "Soft Paper" },
 ] as const;
 
+const TRAVEL_BACKGROUND_PRESETS = [
+  { color: "#fafafa", label: "Warm White" },
+  { color: "#ffffff", label: "Pure White" },
+  { color: "#f5f0eb", label: "Cream" },
+] as const;
+
+function getStyleBackgroundPresets(style: FrameStyle) {
+  if (style === "storyteller") return STORYTELLER_BACKGROUND_PRESETS;
+  if (style === "travel") return TRAVEL_BACKGROUND_PRESETS;
+  return BACKGROUND_PRESETS;
+}
+
 function getDefaultBackgroundColor(style: FrameStyle) {
-  return style === "storyteller" ? STORYTELLER_BACKGROUND_PRESETS[0].color : BACKGROUND_PRESETS[0].color;
+  return getStyleBackgroundPresets(style)[0].color;
 }
 
 const ASPECT_RATIOS = [
@@ -252,8 +264,8 @@ export default function PreviewPage() {
     }));
   }, [activeIndex, activePhoto]);
 
-  const backgroundPresets = selectedStyle === "storyteller" ? STORYTELLER_BACKGROUND_PRESETS : BACKGROUND_PRESETS;
-  const supportsCustomBackgroundColor = selectedStyle !== "storyteller";
+  const backgroundPresets = getStyleBackgroundPresets(selectedStyle);
+  const supportsCustomBackgroundColor = selectedStyle !== "storyteller" && selectedStyle !== "travel";
   const isCustomColor = supportsCustomBackgroundColor && !backgroundPresets.some(p => p.color === backgroundColor);
 
   const handleStyleChange = useCallback((style: FrameStyle) => {
