@@ -27,6 +27,7 @@ export interface ExifData {
   location?: string;     // Place name   — e.g. "Yogyakarta"
   latitude?: string;     // Decimal GPS  — e.g. "35.670000"
   longitude?: string;    // Decimal GPS  — e.g. "139.650000"
+  instagram?: string;    // Creator handle — e.g. "@creator"
 }
 
 /**

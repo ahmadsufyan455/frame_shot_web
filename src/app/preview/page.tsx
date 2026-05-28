@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo, type PointerEvent as ReactPointerEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, SlidersHorizontal, Settings2, Image as ImageIcon, Loader2, X } from "lucide-react";
+import { ArrowLeft, Download, SlidersHorizontal, Settings2, Image as ImageIcon, Loader2, Move, Upload, X } from "lucide-react";
 import StylePicker from "@/components/StylePicker";
 import Filmstrip from "@/components/Filmstrip";
 import Toast, { type ToastMessage } from "@/components/Toast";
@@ -35,6 +35,7 @@ function ExifInput({ label, value, onChange, placeholder }: {
 type VintageStampPosition = NonNullable<PaintOptions["vintageStampPosition"]>;
 type VintageNotePosition = NonNullable<PaintOptions["vintageNotePosition"]>;
 type VintageIntensity = NonNullable<PaintOptions["vintageIntensity"]>;
+type InstagramPosition = NonNullable<PaintOptions["instagramPosition"]>;
 
 const VINTAGE_STAMP_POSITIONS: Array<{ value: VintageStampPosition; label: string }> = [
   { value: "bottom-right", label: "Right" },
@@ -54,6 +55,16 @@ const VINTAGE_INTENSITIES: Array<{ value: VintageIntensity; label: string }> = [
   { value: "classic", label: "Classic" },
   { value: "faded", label: "Faded" },
 ];
+
+const INSTAGRAM_POSITIONS: Array<{ value: InstagramPosition; label: string }> = [
+  { value: "left", label: "Left" },
+  { value: "right", label: "Right" },
+  { value: "bottom", label: "Bottom" },
+  { value: "hidden", label: "Hidden" },
+];
+
+const CUSTOM_LOGO_OPACITY_MIN = 0.1;
+const CUSTOM_LOGO_OPACITY_MAX = 1;
 
 function SegmentedOption<T extends string>({
   label,
@@ -139,6 +150,126 @@ function VintageOptions({
   );
 }
 
+function CustomLogoOptions({
+  logoDataUrl,
+  logoOpacity,
+  logoScale,
+  instagramPosition,
+  onLogoChange,
+  onLogoOpacityChange,
+  onLogoScaleChange,
+  onInstagramPositionChange,
+  onLogoClear,
+}: {
+  logoDataUrl: string;
+  logoOpacity: number;
+  logoScale: number;
+  instagramPosition: InstagramPosition;
+  onLogoChange: (file: File) => void;
+  onLogoOpacityChange: (value: number) => void;
+  onLogoScaleChange: (value: number) => void;
+  onInstagramPositionChange: (value: InstagramPosition) => void;
+  onLogoClear: () => void;
+}) {
+  return (
+    <>
+      <hr className="border-[#262626]" />
+      <section className="flex flex-col gap-5">
+        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+          <SlidersHorizontal className="w-4 h-4 text-neutral-400" /> Creator Style
+        </h3>
+        <div className="flex flex-col gap-4">
+          <SegmentedOption
+            label="Instagram Position"
+            value={instagramPosition}
+            options={INSTAGRAM_POSITIONS}
+            onChange={onInstagramPositionChange}
+          />
+
+          <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-[#121212] px-3 py-2 text-sm text-neutral-300 transition-colors hover:border-neutral-600">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#1a1a1a] text-neutral-400">
+              <Upload className="size-4" />
+            </span>
+            <span className="min-w-0 flex-1 truncate">{logoDataUrl ? "Replace custom logo" : "Upload custom logo"}</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/svg+xml,image/webp"
+              className="sr-only"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) onLogoChange(file);
+                event.target.value = "";
+              }}
+            />
+          </label>
+
+          {logoDataUrl && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-neutral-800 bg-[#121212] p-3">
+              <div
+                aria-label="Custom logo preview"
+                className="size-10 bg-contain bg-center bg-no-repeat"
+                style={{ backgroundImage: `url(${logoDataUrl})` }}
+              />
+              <button type="button" onClick={onLogoClear} className="text-sm text-neutral-400 transition-colors hover:text-white">
+                Remove
+              </button>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3">
+            <label className="text-sm text-neutral-400 flex justify-between items-center">
+              <span>Logo Size</span>
+              <span className="text-neutral-500 font-medium">{logoScale}x</span>
+            </label>
+            <div className="relative flex items-center h-4">
+              <input
+                type="range"
+                min="0.5"
+                max="2"
+                step="0.1"
+                value={logoScale}
+                onChange={(e) => onLogoScaleChange(parseFloat(e.target.value))}
+                className="w-full h-1.5 bg-neutral-800 border border-neutral-700 rounded-full appearance-none cursor-pointer outline-none focus:outline-none z-10 bg-no-repeat [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md"
+                style={{
+                  backgroundImage: "linear-gradient(white, white)",
+                  backgroundSize: `${((logoScale - 0.5) / 1.5) * 100}% 100%`
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <label className="text-sm text-neutral-400 flex justify-between items-center">
+              <span>Opacity</span>
+              <span className="text-neutral-500 font-medium">{Math.round(logoOpacity * 100)}%</span>
+            </label>
+            <div className="relative flex items-center h-4">
+              <input
+                type="range"
+                min={CUSTOM_LOGO_OPACITY_MIN}
+                max={CUSTOM_LOGO_OPACITY_MAX}
+                step="0.05"
+                value={logoOpacity}
+                onChange={(e) => onLogoOpacityChange(parseFloat(e.target.value))}
+                className="w-full h-1.5 bg-neutral-800 border border-neutral-700 rounded-full appearance-none cursor-pointer outline-none focus:outline-none z-10 bg-no-repeat [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
+                style={{
+                  backgroundImage: "linear-gradient(white, white)",
+                  backgroundSize: `${((logoOpacity - CUSTOM_LOGO_OPACITY_MIN) / (CUSTOM_LOGO_OPACITY_MAX - CUSTOM_LOGO_OPACITY_MIN)) * 100}% 100%`
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs leading-5 text-neutral-500">
+            <Move className="size-4 shrink-0" />
+            <span>Drag on the preview to place the watermark inside the photo.</span>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -157,6 +288,15 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
   }, [value, delayMs]);
 
   return debouncedValue;
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
 const DESKTOP_PREVIEW_CANVAS_WIDTH = 1080;
@@ -244,6 +384,11 @@ export default function PreviewPage() {
   const [vintageNotePosition, setVintageNotePosition] = useState<VintageNotePosition>("bottom-left");
   const [vintageIntensity, setVintageIntensity] = useState<VintageIntensity>("classic");
   const [logoScale, setLogoScale] = useState(1);
+  const [customLogoDataUrl, setCustomLogoDataUrl] = useState("");
+  const [customLogoOpacity, setCustomLogoOpacity] = useState(0.85);
+  const [customLogoPosition, setCustomLogoPosition] = useState({ x: 0.86, y: 0.89 });
+  const [instagramPosition, setInstagramPosition] = useState<InstagramPosition>("left");
+  const [isDraggingWatermark, setIsDraggingWatermark] = useState(false);
   const [activeRatio, setActiveRatio] = useState('Original');
   const [selectedStyle, setSelectedStyle] = useState<FrameStyle>('classic');
   const [canvasReady, setCanvasReady] = useState(false);
@@ -283,6 +428,10 @@ export default function PreviewPage() {
     setVintageNotePosition("bottom-left");
     setVintageIntensity("classic");
     setLogoScale(1);
+    setCustomLogoDataUrl("");
+    setCustomLogoOpacity(0.85);
+    setCustomLogoPosition({ x: 0.86, y: 0.89 });
+    setInstagramPosition("left");
     if (activePhoto) {
       setPerPhotoExif(prev => ({ ...prev, [activeIndex]: activePhoto.exifData }));
     }
@@ -304,6 +453,10 @@ export default function PreviewPage() {
     vintageStampPosition,
     vintageNotePosition,
     vintageIntensity,
+    customLogoDataUrl,
+    customLogoOpacity,
+    customLogoPosition,
+    instagramPosition,
   }), [
     activeAspectRatio,
     showMetadata,
@@ -315,6 +468,10 @@ export default function PreviewPage() {
     vintageStampPosition,
     vintageNotePosition,
     vintageIntensity,
+    customLogoDataUrl,
+    customLogoOpacity,
+    customLogoPosition,
+    instagramPosition,
   ]);
   const debouncedEditedExif = useDebouncedValue(editedExif, 120);
   const debouncedPaintOptions = useDebouncedValue(currentPaintOptions, 120);
@@ -522,6 +679,64 @@ export default function PreviewPage() {
     setTimeout(() => setActiveRatio(label), FADE_DURATION_MS);
   }, [activeRatio]);
 
+  const handleCustomLogoFile = useCallback(async (file: File) => {
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setCustomLogoDataUrl(dataUrl);
+    } catch {
+      addToast("error", "Could not read logo file");
+    }
+  }, [addToast]);
+
+  const updateWatermarkPositionFromPointer = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (selectedStyle !== "creator-watermark" || !customLogoDataUrl) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const canvasX = ((event.clientX - rect.left) / rect.width) * canvas.width;
+    const canvasY = ((event.clientY - rect.top) / rect.height) * canvas.height;
+    const weight = borderWeight;
+    const railWidth = Math.round(canvas.width * 0.13 * weight);
+    const bottomRailHeight = Math.round(canvas.width * 0.085 * weight);
+    const outerPad = Math.round(canvas.width * 0.042 * weight);
+    const bottomPad = Math.round(canvas.width * 0.055 * weight);
+    const hasSideInstagramRail = instagramPosition === "left" || instagramPosition === "right";
+    const hasBottomInstagramRail = instagramPosition === "bottom";
+    const topPad = Math.round(canvas.width * (hasBottomInstagramRail ? 0.032 : 0.055) * weight);
+    const leftRail = hasSideInstagramRail && instagramPosition === "left" ? railWidth : 0;
+    const rightRail = hasSideInstagramRail && instagramPosition === "right" ? railWidth : 0;
+    const photoX = leftRail + outerPad;
+    const photoY = topPad;
+    const photoW = canvas.width - photoX - outerPad - rightRail;
+    const photoH = canvas.height - topPad - bottomPad - (hasBottomInstagramRail ? bottomRailHeight : 0);
+
+    setCustomLogoPosition({
+      x: Math.min(1, Math.max(0, (canvasX - photoX) / photoW)),
+      y: Math.min(1, Math.max(0, (canvasY - photoY) / photoH)),
+    });
+  }, [borderWeight, customLogoDataUrl, instagramPosition, selectedStyle]);
+
+  const handleWatermarkPointerDown = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (selectedStyle !== "creator-watermark" || !customLogoDataUrl) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setIsDraggingWatermark(true);
+    updateWatermarkPositionFromPointer(event);
+  }, [customLogoDataUrl, selectedStyle, updateWatermarkPositionFromPointer]);
+
+  const handleWatermarkPointerMove = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (!isDraggingWatermark) return;
+    updateWatermarkPositionFromPointer(event);
+  }, [isDraggingWatermark, updateWatermarkPositionFromPointer]);
+
+  const handleWatermarkPointerUp = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    setIsDraggingWatermark(false);
+  }, []);
+
   useEffect(() => {
     if (isHydrated && !activePhoto) {
       router.replace("/");
@@ -597,7 +812,13 @@ export default function PreviewPage() {
           <canvas
             ref={canvasRef}
             id="frame-canvas"
-            className={`max-w-full max-h-full object-contain shadow-2xl rounded transition-all duration-200 ease-out ${canvasReady ? "blur-0 scale-100" : "blur-md scale-[0.98]"}`}
+            onPointerDown={handleWatermarkPointerDown}
+            onPointerMove={handleWatermarkPointerMove}
+            onPointerUp={handleWatermarkPointerUp}
+            onPointerCancel={handleWatermarkPointerUp}
+            className={`max-w-full max-h-full object-contain shadow-2xl rounded transition-all duration-200 ease-out ${
+              selectedStyle === "creator-watermark" && customLogoDataUrl ? "cursor-grab active:cursor-grabbing touch-none" : ""
+            } ${canvasReady ? "blur-0 scale-100" : "blur-md scale-[0.98]"}`}
           />
         </div>
 
@@ -785,6 +1006,20 @@ export default function PreviewPage() {
               onStampPositionChange={setVintageStampPosition}
               onNotePositionChange={setVintageNotePosition}
               onIntensityChange={setVintageIntensity}
+            />
+          )}
+
+          {selectedStyle === "creator-watermark" && (
+            <CustomLogoOptions
+              logoDataUrl={customLogoDataUrl}
+              logoOpacity={customLogoOpacity}
+              logoScale={logoScale}
+              instagramPosition={instagramPosition}
+              onLogoChange={handleCustomLogoFile}
+              onLogoOpacityChange={setCustomLogoOpacity}
+              onLogoScaleChange={setLogoScale}
+              onInstagramPositionChange={setInstagramPosition}
+              onLogoClear={() => setCustomLogoDataUrl("")}
             />
           )}
 
@@ -1083,6 +1318,20 @@ export default function PreviewPage() {
                   onStampPositionChange={setVintageStampPosition}
                   onNotePositionChange={setVintageNotePosition}
                   onIntensityChange={setVintageIntensity}
+                />
+              )}
+
+              {selectedStyle === "creator-watermark" && (
+                <CustomLogoOptions
+                  logoDataUrl={customLogoDataUrl}
+                  logoOpacity={customLogoOpacity}
+                  logoScale={logoScale}
+                  instagramPosition={instagramPosition}
+                  onLogoChange={handleCustomLogoFile}
+                  onLogoOpacityChange={setCustomLogoOpacity}
+                  onLogoScaleChange={setLogoScale}
+                  onInstagramPositionChange={setInstagramPosition}
+                  onLogoClear={() => setCustomLogoDataUrl("")}
                 />
               )}
 

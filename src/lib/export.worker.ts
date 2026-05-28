@@ -5,6 +5,11 @@ import type { ExifData } from "./exif";
 import type { FrameStyle } from "./frame-styles";
 import type { FramePainter, PaintOptions } from "./renderer";
 
+type PainterModule = {
+  paint: FramePainter;
+  prepare?: (options?: PaintOptions) => Promise<void>;
+};
+
 export type WorkerRequest = {
   photos: Array<{
     id: string;
@@ -25,7 +30,7 @@ export type WorkerEvent =
   | { type: "error"; id: string; filename: string }
   | { type: "done" };
 
-const PAINTERS: Record<FrameStyle, () => Promise<{ paint: FramePainter }>> = {
+const PAINTERS: Record<FrameStyle, () => Promise<PainterModule>> = {
   classic: () => import("./styles/classic"),
   "shot-on": () => import("./styles/shot-on"),
   "minimal-line": () => import("./styles/minimal-line"),
@@ -35,11 +40,14 @@ const PAINTERS: Record<FrameStyle, () => Promise<{ paint: FramePainter }>> = {
   signature: () => import("./styles/signature"),
   storyteller: () => import("./styles/storyteller"),
   travel: () => import("./styles/travel"),
+  "creator-watermark": () => import("./styles/creator-watermark"),
 };
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   const { photos, style, format, quality, paintOptions } = event.data;
-  const { paint } = await PAINTERS[style]();
+  const painter = await PAINTERS[style]();
+  await painter.prepare?.(paintOptions);
+  const { paint } = painter;
   const mimeType = format === "jpeg" ? "image/jpeg" : "image/png";
   const qualityValue = format === "jpeg" ? quality / 100 : undefined;
 

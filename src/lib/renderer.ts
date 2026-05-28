@@ -3,7 +3,12 @@ import type { FrameStyle } from "@/lib/frame-styles";
 
 export type SourceImage = HTMLImageElement | ImageBitmap;
 
-const PAINTERS: Record<FrameStyle, () => Promise<{ paint: FramePainter }>> = {
+type PainterModule = {
+  paint: FramePainter;
+  prepare?: (options?: PaintOptions) => Promise<void>;
+};
+
+const PAINTERS: Record<FrameStyle, () => Promise<PainterModule>> = {
   classic: () => import("./styles/classic"),
   "shot-on": () => import("./styles/shot-on"),
   "minimal-line": () => import("./styles/minimal-line"),
@@ -13,6 +18,7 @@ const PAINTERS: Record<FrameStyle, () => Promise<{ paint: FramePainter }>> = {
   signature: () => import("./styles/signature"),
   storyteller: () => import("./styles/storyteller"),
   travel: () => import("./styles/travel"),
+  "creator-watermark": () => import("./styles/creator-watermark"),
 };
 
 export interface PaintOptions {
@@ -26,6 +32,10 @@ export interface PaintOptions {
   vintageStampPosition?: "bottom-right" | "bottom-left" | "hidden";
   vintageNotePosition?: "bottom-left" | "bottom-center" | "bottom-right" | "hidden";
   vintageIntensity?: "soft" | "classic" | "faded";
+  customLogoDataUrl?: string;
+  customLogoOpacity?: number;
+  customLogoPosition?: { x: number; y: number };
+  instagramPosition?: "left" | "right" | "bottom" | "hidden";
 }
 
 export interface ExportOptions {
@@ -48,7 +58,9 @@ export async function renderFrame(
   style: FrameStyle,
   options?: PaintOptions
 ): Promise<void> {
-  const { paint } = await PAINTERS[style]();
+  const painter = await PAINTERS[style]();
+  await painter.prepare?.(options);
+  const { paint } = painter;
   paint(canvas, image, exifData, options);
 }
 
