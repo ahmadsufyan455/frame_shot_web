@@ -41,6 +41,7 @@ const PAINTERS: Record<FrameStyle, () => Promise<PainterModule>> = {
   storyteller: () => import("./styles/storyteller"),
   travel: () => import("./styles/travel"),
   "creator-watermark": () => import("./styles/creator-watermark"),
+  memoir: () => import("./styles/memoir"),
 };
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {

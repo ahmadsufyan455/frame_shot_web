@@ -28,6 +28,7 @@ export interface ExifData {
   latitude?: string;     // Decimal GPS  — e.g. "35.670000"
   longitude?: string;    // Decimal GPS  — e.g. "139.650000"
   instagram?: string;    // Creator handle — e.g. "@creator"
+  description?: string;  // Custom caption/story — e.g. "A quiet moment..."
 }
 
 /**
@@ -90,6 +91,7 @@ export async function extractExif(file: File): Promise<ExifData> {
       location,
       latitude,
       longitude,
+      description: "",
     };
   } catch {
     // Graceful fallback — return empty data, never throw to UI

@@ -10,7 +10,8 @@ export type FrameStyle =
   | "signature"
   | "storyteller"
   | "travel"
-  | "creator-watermark";
+  | "creator-watermark"
+  | "memoir";
 
 export interface ExifSlot {
   key: keyof ExifData;
@@ -131,6 +132,16 @@ export const FRAME_STYLE_CONFIGS: Record<FrameStyle, FrameStyleConfig> = {
     description: "Tall white creator frame with a side Instagram handle and draggable custom watermark",
     slots: [
       { key: "instagram", label: "Instagram", placeholder: "e.g. @creator" },
+    ],
+  },
+  memoir: {
+    id: "memoir",
+    label: "Memoir",
+    description: "Centered serif caption with a thin divider line and a letter-spaced date/location sub-caption",
+    slots: [
+      { key: "description", label: "Caption / Story", placeholder: "e.g. A quiet moment captured in time..." },
+      { key: "dateTime", label: "Capture Date", placeholder: "e.g. 05/2026", half: true },
+      { key: "location", label: "Location", placeholder: "e.g. Unknown Location", half: true },
     ],
   },
 };
